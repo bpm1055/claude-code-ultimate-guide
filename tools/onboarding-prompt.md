@@ -271,7 +271,7 @@ Based on time spent and topics covered:
 - Everything shared with Claude Code is sent to Anthropic servers
 - Default retention: **5 years** (training enabled)
 - Action: [Disable training](https://claude.ai/settings/data-privacy-controls) → reduces to 30 days
-- Details: [Data Privacy Guide](https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/data-privacy.md)
+- Details: [Data Privacy Guide](https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/security/data-privacy.md)
 
 ## Output Format
 

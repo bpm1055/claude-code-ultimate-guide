@@ -1,6 +1,6 @@
 ---
 title: "Claude Code — Foundations Diagrams"
-description: "Core concepts: 4-layer model, workflow pipeline, decision tree, permission modes"
+description: "Core concepts: 4-layer model, workflow pipeline, decision tree, 5 permission modes"
 tags: [foundations, architecture, getting-started]
 ---
 
@@ -41,16 +41,16 @@ flowchart TD
     style E1 fill:#B8B8B8,color:#333
 
     click A href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#12-first-workflow" "First Workflow"
-    click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Layer 1: System Prompt"
+    click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Layer 1: System Prompt"
     click B1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#31-memory-files-claudemd" "Memory Files (CLAUDE.md)"
     click C href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#22-context-management" "Layer 2: Context Injection"
     click C1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#22-context-management" "Context Management"
-    click D href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Layer 3: Tool Definitions"
-    click D1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Tool Arsenal"
+    click D href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Layer 3: Tool Definitions"
+    click D1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Tool Arsenal"
     click E href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#22-context-management" "Layer 4: Conversation History"
     click E1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#22-context-management" "Context Management"
-    click F href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Claude API — Master Loop"
-    click G href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Claude Response"
+    click F href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Claude API — Master Loop"
+    click G href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Claude Response"
 ```
 
 <details>
@@ -109,14 +109,14 @@ flowchart LR
     style J fill:#7BC47F,color:#333
 
     click A href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#12-first-workflow" "First Workflow"
-    click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Parse Intent — Master Loop"
+    click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Parse Intent — Master Loop"
     click C href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#22-context-management" "Load Context"
     click D href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#23-plan-mode" "Plan Actions — Plan Mode"
-    click E href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Execute Tools"
-    click F href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "More Tools? — Master Loop"
-    click G href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Collect Results"
+    click E href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Execute Tools"
+    click F href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "More Tools? — Master Loop"
+    click G href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Collect Results"
     click H href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#22-context-management" "Update Context"
-    click I href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Generate Response"
+    click I href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Generate Response"
     click J href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#12-first-workflow" "Display to User"
 ```
 
@@ -208,7 +208,7 @@ Task involves codebase?
 
 ### Permission Modes Comparison
 
-Claude Code has 3 permission modes that control what it can do automatically vs. what requires your approval. Choosing the wrong mode is the #1 safety mistake.
+Claude Code has 5 permission modes that control what it can do automatically vs. what requires your approval. Choosing the wrong mode is the #1 safety mistake.
 
 ```mermaid
 flowchart TD
@@ -231,6 +231,18 @@ flowchart TD
         B3["Use only in:<br/>CI/CD, sandboxed<br/>environments"] --> B2
     end
 
+    subgraph PLAN["🔍 Plan Mode (Read-Only)"]
+        PL1(File reads) --> PL2([Auto-approved])
+        PL3(File writes) --> PL4([Blocked])
+        PL5(Shell commands) --> PL6([Blocked])
+        PL7["Exit with /execute<br/>or Shift+Tab"] --> PL2
+    end
+
+    subgraph DONTASK["🚫 dontAsk Mode"]
+        DA1(ALL operations) --> DA2([Auto-denied])
+        DA3["Unless pre-approved<br/>via /permissions add"] --> DA2
+    end
+
     style D2 fill:#7BC47F,color:#333
     style D4 fill:#E87E2F,color:#fff
     style D6 fill:#E87E2F,color:#fff
@@ -241,6 +253,11 @@ flowchart TD
     style A8 fill:#E87E2F,color:#fff
     style B2 fill:#E85D5D,color:#fff
     style B3 fill:#F5E6D3,color:#333
+    style PL2 fill:#7BC47F,color:#333
+    style PL4 fill:#E85D5D,color:#fff
+    style PL6 fill:#E85D5D,color:#fff
+    style DA2 fill:#E85D5D,color:#fff
+    style DA3 fill:#F5E6D3,color:#333
 
     click D1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Default Mode — Permission Modes"
     click D2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Auto-approved"
@@ -261,6 +278,16 @@ flowchart TD
     click B1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "bypassPermissions Mode"
     click B2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Auto-approved (all)"
     click B3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "CI/CD, sandboxed only"
+    click PL1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Plan Mode — File reads"
+    click PL2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Auto-approved"
+    click PL3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Plan Mode — File writes blocked"
+    click PL4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Blocked"
+    click PL5 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Plan Mode — Shell commands blocked"
+    click PL6 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Blocked"
+    click PL7 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Exit Plan Mode"
+    click DA1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "dontAsk Mode — All operations"
+    click DA2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Auto-denied"
+    click DA3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#14-permission-modes" "Pre-approve via /permissions add"
 ```
 
 <details>
@@ -273,6 +300,13 @@ File reads    → AUTO ✓       File reads    → AUTO ✓    ALL ops → AUTO 
 File writes   → PROMPT       File writes   → AUTO ✓
 Shell cmds    → PROMPT       Shell cmds    → PROMPT    Use: CI/CD only,
 Risky ops     → PROMPT       Risky ops     → PROMPT    sandboxed env
+
+Plan Mode (Read-Only)        dontAsk Mode
+─────────────────────        ────────────
+File reads    → AUTO ✓       ALL ops → AUTO DENIED ✗
+File writes   → BLOCKED ✗    Unless pre-approved via
+Shell cmds    → BLOCKED ✗    /permissions add
+Exit: /execute or Shift+Tab
 ```
 
 </details>

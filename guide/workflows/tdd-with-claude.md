@@ -309,7 +309,7 @@ Run tests after each change to ensure they stay green.
 
 ## See Also
 
-- [../methodologies.md](../methodologies.md) — Full methodology reference
+- [../core/methodologies.md](../core/methodologies.md) — Full methodology reference
 - [Tight Feedback Loops](../ultimate-guide.md) — Section 9.5
 - [examples/skills/tdd-workflow.md](../../examples/skills/tdd-workflow.md) — TDD skill template
 - [Anthropic Best Practices](https://www.anthropic.com/engineering/claude-code-best-practices)

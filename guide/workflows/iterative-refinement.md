@@ -635,4 +635,4 @@ Being honest about what doesn't work yet, so you don't waste time reinventing so
 - [exploration-workflow.md](./exploration-workflow.md) — Explore alternatives before iterating
 - [tdd-with-claude.md](./tdd-with-claude.md) — TDD is iterative refinement with tests
 - [plan-driven.md](./plan-driven.md) — Plan before iterating
-- [../methodologies.md](../methodologies.md) — Iterative Loops methodology
+- [../core/methodologies.md](../core/methodologies.md) — Iterative Loops methodology

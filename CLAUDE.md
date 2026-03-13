@@ -12,10 +12,13 @@ This repository is the **comprehensive documentation for Claude Code** (Anthropi
 guide/                    # Core documentation
 ├── ultimate-guide.md     # Main guide (~20K lines, the reference)
 ├── cheatsheet.md         # 1-page printable summary
-├── architecture.md       # How Claude Code works internally
-├── methodologies.md      # TDD, SDD, BDD workflows
-├── data-privacy.md       # What data is sent to Anthropic
-├── security-hardening.md # Security best practices
+├── cowork.md             # Cowork redirect page
+├── core/                 # Architecture, methodologies, releases, known-issues, visual-reference
+├── security/             # security-hardening, sandbox-isolation, sandbox-native, production-safety, data-privacy
+├── ecosystem/            # ai-ecosystem, mcp-servers-ecosystem, third-party-tools, remarkable-ai
+├── roles/                # ai-roles, adoption-approaches, learning-with-ai, agent-evaluation
+├── ops/                  # devops-sre, observability, ai-traceability
+├── diagrams/             # Mermaid visual diagrams
 └── workflows/            # Step-by-step workflow guides
 
 examples/                 # Production-ready templates
@@ -50,7 +53,7 @@ claudedocs/               # Claude working documents (gitignored)
 
 | File | Purpose |
 |------|---------|
-| `VERSION` | Single source of truth for version (currently 3.27.0) |
+| `VERSION` | Single source of truth for version (currently 3.34.1) |
 | `guide/ultimate-guide.md` | The main reference (search here first) |
 | `guide/cheatsheet.md` | Quick reference for daily use |
 | `machine-readable/reference.yaml` | LLM-optimized index with line numbers |
@@ -456,7 +459,7 @@ Ce repo maintient un historique condensé des releases officielles de Claude Cod
 | Fichier | Rôle |
 |---------|------|
 | `machine-readable/claude-code-releases.yaml` | Source de vérité (YAML) |
-| `guide/claude-code-releases.md` | Version lisible (Markdown) |
+| `guide/core/claude-code-releases.md` | Version lisible (Markdown) |
 | `scripts/update-cc-releases.sh` | Script de vérification des nouvelles versions |
 
 ### Vérifier les nouvelles versions
@@ -532,5 +535,5 @@ For answering questions about Claude Code:
 1. Search `machine-readable/reference.yaml` first (has line numbers to full guide)
 2. Use those line numbers to read relevant sections from `guide/ultimate-guide.md`
 3. Check `examples/` for ready-to-use templates
-4. Check `guide/claude-code-releases.md` for recent features/changes
+4. Check `guide/core/claude-code-releases.md` for recent features/changes
 5. Si info manquante ou incertaine → demander une recherche Perplexity (communauté, comparaisons, retours)

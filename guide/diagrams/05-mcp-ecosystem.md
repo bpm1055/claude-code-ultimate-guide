@@ -93,7 +93,7 @@ Claude Code
 
 </details>
 
-> **Source**: [MCP Ecosystem](../mcp-servers-ecosystem.md) — Full guide
+> **Source**: [MCP Ecosystem](../ecosystem/mcp-servers-ecosystem.md) — Full guide
 
 ---
 
@@ -162,7 +162,7 @@ Use result       ←  JSON-RPC Response  ←  Return result
 
 </details>
 
-> **Source**: [Architecture: MCP](../architecture.md#mcp-architecture) — Line ~795
+> **Source**: [Architecture: MCP](../core/architecture.md#mcp-architecture) — Line ~795
 
 ---
 
@@ -209,13 +209,13 @@ DEFENSE: Read MCP source before installing. Especially check tool descriptions.
 
 </details>
 
-> **Source**: [Security: MCP Threats](../security-hardening.md#mcp-threats) — Line ~33
+> **Source**: [Security: MCP Threats](../security/security-hardening.md#mcp-threats) — Line ~33
 
 ---
 
 ### MCP Config Hierarchy
 
-MCP server configurations can live in 4 different locations. The resolution order determines which servers are available and who can override what.
+MCP server configurations can live in 4 priority levels (3 actual files). The resolution order determines which servers are available and who can override what.
 
 ```mermaid
 flowchart TD
@@ -228,6 +228,9 @@ flowchart TD
     B1["Use for:<br/>Team-shared servers<br/>(playwright, github)"] --> B
     D1["Use for:<br/>Personal tools<br/>(context7, grepai)"] --> D
 
+    NOTE2["⚠️ local + user scopes<br/>both stored in ~/.claude.json<br/>(separate configuration keys)"] -.-> C
+    NOTE2 -.-> D
+
     style A fill:#E87E2F,color:#fff
     style B fill:#6DB3F2,color:#fff
     style C fill:#6DB3F2,color:#fff
@@ -236,6 +239,7 @@ flowchart TD
     style A1 fill:#B8B8B8,color:#333
     style B1 fill:#B8B8B8,color:#333
     style D1 fill:#B8B8B8,color:#333
+    style NOTE2 fill:#F5E6D3,color:#333
 
     click A href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#83-configuration" "CLI --mcp-config flag"
     click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#83-configuration" "Project .claude/mcp.json"
@@ -257,6 +261,7 @@ PRIORITY (highest → lowest):
 3. ~/.claude.json      → local scope (private, current project)
 4. ~/.claude.json      → user scope (personal, all projects)
 5. (none)             → no MCP servers available
+* local + user both in ~/.claude.json (different keys)
 ```
 
 </details>

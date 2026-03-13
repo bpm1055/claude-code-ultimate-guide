@@ -7,7 +7,7 @@
 ### MCP Security Hardening ✅
 Unified security research covering MCP vulnerabilities, prompt injection, and secret detection.
 
-**Completed**: [Security Hardening Guide](./guide/security-hardening.md) covers:
+**Completed**: [Security Hardening Guide](./guide/security/security-hardening.md) covers:
 - CVE-2025-53109/53110, 54135, 54136 with mitigations
 - MCP vetting workflow with 5-minute audit checklist
 - MCP Safe List (community vetted)
@@ -85,6 +85,36 @@ CLAUDE.md configuration examples by framework:
 
 ## Watching (Waiting for Demand)
 
+a### prompt-caching MCP Plugin
+
+MCP plugin that automates `cache_control` placement for developers building apps on the Anthropic SDK. Installed locally at `/Users/florianbruniaux/Sites/prompt-caching` and connected to Claude Code via `~/.claude.json`.
+
+**Status:** Testing in progress. Real usage data required before any documentation decision.
+
+**What we know:**
+- 29 stars, v1.3.0, solo maintainer — maintenance risk
+- Author-reported benchmarks (80-92% savings) — unverified, cannot cite
+- Fills a real gap: no other MCP tool does this; Spring AI / LiteLLM / Pydantic AI serve different audiences
+- Blog post (Mathieu Grenier) independently documents the same pain point + 5 antipatterns — score 3/5, worth integrating in "Strategy 6" regardless
+
+**Open questions:**
+- [ ] Do real sessions on this project actually hit the cache? (run `get_cache_stats` after 10+ turns)
+- [ ] Is the plugin stable enough to recommend? Any errors, memory leaks, session issues?
+- [ ] What are the real savings on a CLAUDE.md-heavy project like this guide?
+
+**If test results are positive (cache hits confirmed, no stability issues):**
+- Add to `guide/ecosystem/third-party-tools.md` with verified stats (not README claims)
+- Add to landing third-party tools section
+- Score upgrade: 3/5 → 4/5
+
+**If test results are inconclusive or plugin is unstable:**
+- Move to Discarded Ideas
+- Keep the Mathieu Grenier blog post integration (independent value)
+
+**Check again:** After 1 week of real usage
+
+---
+
 ### Multi-LLM Consultation Patterns
 Using external LLMs (Gemini, GPT-4) as "second opinion" from Claude Code.
 
@@ -119,7 +149,7 @@ Schema-first development impact on Claude Code token consumption.
 - [ ] 5+ community discussions/issues requesting this topic
 
 **If validated (score upgrade to 4/5):**
-- Add subsection in `guide/methodologies.md` (after CDD, line 172)
+- Add subsection in `guide/core/methodologies.md` (after CDD, line 172)
 - Use micro-integration template: `docs/resource-evaluations/shiptypes-evaluation.md` (section "Integration Plan")
 
 **Check again:** August 2026

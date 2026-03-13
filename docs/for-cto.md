@@ -102,6 +102,6 @@ If you want to accelerate adoption or get an independent assessment of your curr
 ## Quick links
 
 - Whitepapers — 10 focused deep-dives *(coming soon)*
-- [Security Hardening Guide](../guide/security-hardening.md)
+- [Security Hardening Guide](../guide/security/security-hardening.md)
 
 ← [Back to main README](../README.md)

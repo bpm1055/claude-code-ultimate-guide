@@ -94,7 +94,7 @@ If you want structured onboarding rather than self-learning:
 - [Full Guide](../guide/ultimate-guide.md) — start at Ch.3.5 for team config
 - Whitepapers — 10 focused deep-dives *(coming soon)*
 - [Templates](../examples/) — ready-to-use hooks, agents, CLAUDE.md examples
-- [Security Hardening](../guide/security-hardening.md) — threat database + mitigation guide
+- [Security Hardening](../guide/security/security-hardening.md) — threat database + mitigation guide
 - [CHANGELOG](../CHANGELOG.md) — what changed recently
 
 ← [Back to main README](../README.md)

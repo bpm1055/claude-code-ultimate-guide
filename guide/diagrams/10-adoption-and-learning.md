@@ -46,24 +46,24 @@ flowchart TD
     style D4 fill:#7BC47F,color:#333
     style E5 fill:#7BC47F,color:#333
 
-    click A href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Start: New to Claude Code"
-    click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Your background?"
+    click A href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Start: New to Claude Code"
+    click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Your background?"
     click C href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#12-first-workflow" "Developer Path"
     click C1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#12-first-workflow" "Quick Start: first session"
     click C2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#12-first-workflow" "Workflows: TDD, spec-first, plan-driven"
     click C3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#41-what-are-agents" "Advanced: agents, hooks, MCP"
-    click C4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Productive developer"
-    click D href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Non-Tech Path"
-    click D1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "What is Claude Code?"
-    click D2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Basic usage"
-    click D3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Limited scope"
-    click D4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Safe basic user"
-    click E href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Team Lead Path"
-    click E1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "ROI assessment"
+    click C4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Productive developer"
+    click D href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Non-Tech Path"
+    click D1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "What is Claude Code?"
+    click D2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Basic usage"
+    click D3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Limited scope"
+    click D4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Safe basic user"
+    click E href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Team Lead Path"
+    click E1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "ROI assessment"
     click E2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#31-memory-files-claudemd" "CLAUDE.md strategy"
-    click E3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Pilot with 2-3 devs"
-    click E4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Gradual rollout"
-    click E5 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/adoption-approaches.md" "Team adoption"
+    click E3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Pilot with 2-3 devs"
+    click E4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Gradual rollout"
+    click E5 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/adoption-approaches.md" "Team adoption"
 ```
 
 <details>
@@ -83,7 +83,7 @@ Your background?
 
 </details>
 
-> **Source**: [Adoption Approaches](../adoption-approaches.md)
+> **Source**: [Adoption Approaches](../roles/adoption-approaches.md)
 
 ---
 
@@ -114,13 +114,13 @@ flowchart LR
     style DONE fill:#7BC47F,color:#333
     style TRAP fill:#E85D5D,color:#fff
 
-    click U href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/learning-with-ai.md" "Use It"
-    click V href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/learning-with-ai.md" "Verify"
-    click A href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/learning-with-ai.md" "Adapt"
-    click L href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/learning-with-ai.md" "Learn"
-    click NEXT href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/learning-with-ai.md" "More tasks using this pattern?"
-    click DONE href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/learning-with-ai.md" "Pattern internalized"
-    click TRAP href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/learning-with-ai.md" "Copy-Paste Trap"
+    click U href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/learning-with-ai.md" "Use It"
+    click V href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/learning-with-ai.md" "Verify"
+    click A href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/learning-with-ai.md" "Adapt"
+    click L href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/learning-with-ai.md" "Learn"
+    click NEXT href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/learning-with-ai.md" "More tasks using this pattern?"
+    click DONE href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/learning-with-ai.md" "Pattern internalized"
+    click TRAP href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/roles/learning-with-ai.md" "Copy-Paste Trap"
 ```
 
 <details>
@@ -139,7 +139,7 @@ Anti-pattern (AVOID): Accept output → Deploy → Bug → "Claude broke it"
 
 </details>
 
-> **Source**: [Learning with AI](../learning-with-ai.md) — Line ~127
+> **Source**: [Learning with AI](../roles/learning-with-ai.md) — Line ~127
 
 ---
 

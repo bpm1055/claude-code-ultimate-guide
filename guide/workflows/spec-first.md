@@ -861,7 +861,7 @@ Claude: Reads CLAUDE.md + @CLAUDE-api.md (relevant context only)
 
 ## See Also
 
-- [../methodologies.md](../methodologies.md) — SDD and other methodologies
+- [../core/methodologies.md](../core/methodologies.md) — SDD and other methodologies
 - [Spec Kit Documentation](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
 - [OpenSpec Documentation](https://github.com/Fission-AI/OpenSpec)
 - [tdd-with-claude.md](./tdd-with-claude.md) — Combine with TDD

@@ -6,6 +6,224 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`examples/scripts/test-prompt-caching.ts`** — Standalone TypeScript script (zero deps, native fetch) to verify Anthropic prompt caching is active on any API key. Runs 3 identical calls and checks write/read metrics. Documents 4 production gotchas not in official docs: (1) `anthropic-beta: prompt-caching-2024-07-31` header is required even for Claude 4.x, (2) effective token threshold for Claude 4.x is ~2048+ not the documented 1024, (3) cached tokens are excluded from `input_tokens`, (4) new nested `cache_creation` object format with `ephemeral_5m_input_tokens` and `ephemeral_1h_input_tokens`. Usage: `ANTHROPIC_API_KEY=sk-ant-... npx tsx test-prompt-caching.ts`.
+
+- **`CLAUDE.md` Behavioral Rules section** — New `## Behavioral Rules` section with 5 rules derived from observed session friction patterns (via `/insights` analysis): (1) always update `CHANGELOG.md` after any modification, (2) be exhaustive on first pass for audits and reviews, (3) use absolute paths in reports and documentation, (4) closing checklist confirming files changed + changelog + commit hash, (5) bias toward action — no extended planning loops without deliverables.
+
+### Added
+
+- **Desloppify tool** — New subsection "Fighting Vibe Code Degradation" in §9.8 (Vibe Coding). Documents `desloppify` ([peteromallet/desloppify](https://github.com/peteromallet/desloppify)), a community tool that installs a fix-loop workflow directly into Claude Code as a skill (`desloppify update-skill claude`) and runs a scan → next → fix → resolve loop to systematically improve code quality. Includes install snippet, the loop commands, and an early-stage status note with token cost caveat. Tagged early-stage (released February 2026, ~2K stars, no production-scale feedback yet).
+
+- **`guide/workflows/github-actions.md`** — New workflow guide (5 production-ready patterns for GitHub Actions CI/CD with `anthropics/claude-code-action`, 6.2k stars, v1.0). Covers: (1) interactive PR review via `@claude` mention, (2) automatic review on push, (3) issue triage and labeling, (4) security-focused review triggered on sensitive paths (`auth/**`, `payments/**`), (5) scheduled weekly repo health check. Includes cost control table (Haiku vs Sonnet per pattern), concurrency setup to prevent parallel runs, fork safety guard for public repos, and Bedrock/Vertex authentication alternatives. Cross-linked from section 9.3 of the main guide and added to `guide/workflows/README.md`.
+
+- **`guide/workflows/README.md`**: Added GitHub Actions Workflows entry to Development Workflows section with description, key topics, and "when to use" guidance.
+
+- **`guide/workflows/rpi.md`** — New workflow guide (RPI: Research → Plan → Implement). 3-phase feature development pattern with explicit validation gates: Research produces `RESEARCH.md`, Plan produces `PLAN.md`, Implement produces working code. Each gate requires explicit GO before the next phase. Includes slash command templates (`/rpi:research`, `/rpi:plan`, `/rpi:implement`), a worked example (adding rate limiting to an Express API), and comparison matrix vs Plan-Driven, TDD, and Spec-First. Best for features where discovering a wrong assumption late is expensive.
+
+- **`guide/workflows/changelog-fragments.md`** — New workflow guide for the Changelog Fragments pattern: one YAML fragment per PR, written at implementation time, validated by CI, assembled automatically at release. Covers 3-layer enforcement: (1) CLAUDE.md workflow rule for autonomous fragment creation, (2) `UserPromptSubmit` hook with 3-tier priority (enforcement → discovery → contextual), (3) independent CI migration check job. Includes the `UserPromptSubmit` tier pattern as a reusable hook architecture for any mandatory workflow step.
+
+- **`examples/hooks/bash/smart-suggest.sh`** — New `UserPromptSubmit` hook implementing the 3-tier behavioral coach pattern: Tier 0 enforcement (changelog fragment required before PR, plan-before-code), Tier 1 discovery (test-loop, retex, dupes, monitoring, security, release), Tier 2 contextual (code review, debugging, architecture, session resume). Max 1 suggestion per prompt (first match wins), dedup guard, ROI logging to `~/.claude/logs/smart-suggest.jsonl`, silent exit on no match.
+
+- **`guide/core/known-issues.md`** — New section "LLM Day-to-Day Performance Variance": documents session-to-session output quality variance (shorter responses, conservative suggestions, edge-case refusals) as expected behavior, not a bug. Explains the 4 root causes (probabilistic inference, MoE routing variance, infrastructure variance, context sensitivity) and provides an observable signals table. Includes a practical checklist for ruling out controllable factors before concluding "the model degraded."
+
+- **`cc-sessions discover` documentation** — New subsection "Session Pattern Discovery" in §2.x (Session Management) covering the `discover` subcommand: n-gram mode (local, free, ~3s for 12 projects) vs `--llm` mode (semantic analysis via `claude --print`). Includes example output, the 20% rule decision framework (CLAUDE.md rule / skill / command categorization), and install instructions. Cross-reference added after the 20% rule callout in §5.1.
+
+- **`examples/scripts/cc-sessions.py` synced** — Updated from 498-line stale copy to the full 1225-line version from `~/bin/cc-sessions`. Includes the complete `discover` subcommand (n-gram analysis + `--llm` mode), incremental discover cache, Jaccard deduplication, and all filtering logic. GitHub source header added.
+
+- **`examples/scripts/README.md`** — Updated cc-sessions entry: added `discover` subcommand examples (n-gram and `--llm`), GitHub repo link ([FlorianBruniaux/cc-sessions](https://github.com/FlorianBruniaux/cc-sessions)), and curl install instructions.
+
+- **`machine-readable/reference.yaml`** — Added `cc_sessions_github` and `cc_sessions_discover` entries alongside the updated `cc_sessions_script` comment.
+
+- **GitHub repo created**: [FlorianBruniaux/cc-sessions](https://github.com/FlorianBruniaux/cc-sessions) — v1.0.0 release tagged and published.
+
+## [3.34.11] - 2026-03-13
+
+### Updated
+
+- **`guide/ultimate-guide.md`** (§ Cost Optimization → Strategy 6): Added `#### How Claude Code Handles Caching Automatically` subsection (~75 lines) covering the mechanics that were previously a single undocumented footnote. New content: (1) **Cache prefix hierarchy** — `tools → system → messages` ordering and why the first two layers almost always hit; (2) **20-block lookback** — the long-session cache degradation trap and why `/compact` restores hit rates; (3) **Minimum token thresholds by model** — eligibility table for Opus/Sonnet/Haiku families (1,024–4,096 tokens), correcting the previously circulating false "32,000 token maximum" claim; (4) **Tool result size and cache economics** — why compact tool outputs reduce both cache write and read costs proportionally across the entire session; (5) **Monitoring in custom pipelines** — `cache_creation_input_tokens` / `cache_read_input_tokens` response fields, hit rate calculation formula, and why no dedicated CC cache monitoring tool currently exists; (6) **Practical rules** — CLAUDE.md stability, pre-emptive `/compact` timing, avoiding dynamic content in stable sections.
+
+## [3.34.10] - 2026-03-13
+
+### Added
+
+- **Quiz expanded: 277 → 311 questions (+34)** — 33 new questions covering topics added since the last quiz audit, across 9 categories: `modelOverrides`/`autoMemoryDirectory` settings (v2.1.73-74), tool-qualified deny format `Read(file_path:*.env*)`, CLAUDE.md HTML comment hiding (v2.1.72), `spinnerVerbs`/`spinnerTipsOverride` terminal personalization, team config at scale (N×M×P fragmentation, 59% token reduction), `/loop`/`/simplify`/`/batch`/`/stats`/`/rename` commands (v2.1.63-71), `WorktreeCreate`/`WorktreeRemove`/`TeammateIdle`/`TaskCompleted` hook events (v2.1.50 + v2.1.32+), auto-rename-session hook pattern, Git MCP vs GitHub MCP (12 local tools vs remote Copilot-required), Context Engineering 150% ceiling + ACE pipeline, Plan-Validate-Execute 3-command workflow, dual-instance planning (Jon Williams, $100-200/month), `isolation: "worktree"` in agent frontmatter, simplified effort levels ○◐● (v2.1.72, max removed), Fast mode (2.5x faster/6x price), `model` parameter restored on Agent tool (v2.1.72), `/context` actionable suggestions (v2.1.74), METR RCT 2025 (19% slower on large codebases), Borg "Echoes of AI" RCT 2025 (30.7% faster, no maintainability regression), Contribution Metrics platform feature (+67% PRs/day), enterprise governance 4 guardrail tiers (Starter/Standard/Strict/Regulated), MCP governance workflow + YAML registry, native sandbox OS primitives (macOS Seatbelt vs Linux bubblewrap), `dangerouslyDisableSandbox` escape hatch, RTK (60-92% token reduction, TOML Filter DSL), Google Antigravity (agent-first IDE). 1 question corrected: `12-architecture-internals/002` updated to reflect Tasks API replacing TodoWrite (v2.1.16+).
+- **Quiz counters synced**: `machine-readable/reference.yaml` (`quiz_count: 311`), `llms.txt` + `llms-full.txt` + `machine-readable/llms.txt` (`Quiz Questions: 311`).
+
+## [3.34.9] - 2026-03-13
+
+### Added
+
+- **`guide/workflows/gstack-workflow.md`** — New workflow guide (140 lines) documenting the "Cognitive Mode Switching" pattern: switching between specialist roles across the ship cycle (strategic gate → architecture → paranoid review → release → browser QA → retrospective). Reference implementation: [gstack](https://github.com/garrytan/gstack) by Garry Tan (YC CEO). Covers the 6 gears table, the pre-implementation strategic gate concept ("are we building the right thing?"), `/browse` non-MCP native browser architecture (persistent Chromium daemon, ~100ms/cmd vs MCP), full cycle demo, and when to use vs Plan Pipeline.
+
+- **`examples/commands/plan-ceo-review.md`** — New command template for the strategic product gate. Three modes: SCOPE EXPANSION (find the 10-star product), HOLD SCOPE (make the plan bulletproof), SCOPE REDUCTION (strip to MVP). Includes full prompt template, concrete example (photo upload → smart listing creation), and integration notes. Inspired by gstack's `/plan-ceo-review` skill.
+
+- **`examples/commands/plan-eng-review.md`** — New command template for the engineering architecture gate. Forces diagram generation (architecture, sequence, state machine), sync/async boundary decisions, failure mode inventory, trust boundary map, and test matrix before implementation. Includes Mermaid diagram examples and integration notes. Inspired by gstack's `/plan-eng-review` skill.
+
+### Updated
+
+- **`guide/workflows/README.md`**: Added Cognitive Mode Switching entry to Development Workflows section. Added two rows to Quick Selection Guide: "Strategic gate before coding" and "Non-MCP browser automation".
+
+- **`guide/ecosystem/third-party-tools.md`** (Plugin Ecosystem section): Added gstack as the first entry under a new "Notable skill packs" subsection, with cross-reference to the workflow guide.
+
+## [3.34.8] - 2026-03-12
+
+### Added
+
+- **`examples/hooks/bash/smart-suggest.sh`** — Production-ready `UserPromptSubmit` hook implementing a 3-tier behavioral coaching architecture (Tier 0: enforcement, Tier 1: discovery, Tier 2: contextual). Features: max 1 suggestion per prompt, dedup guard (never suggests a command already in the prompt), JSONL ROI logging to `~/.claude/logs/smart-suggest.jsonl`, and silent exit on no match. Includes changelog fragment enforcement as the canonical Tier 0 example (conditional "if PR-intent without fragment-mention" pattern), plus 10 additional patterns across all three tiers. Directly reusable as a starting point for any project-level behavioral enforcement hook.
+
+- **`guide/workflows/changelog-fragments.md`** — New workflow guide documenting the 3-layer changelog fragment enforcement pattern: (1) CLAUDE.md workflow rule for autonomous fragment creation by Claude, (2) `UserPromptSubmit` hook with tier-priority system for pre-prompt interception, (3) CI gate with two independent jobs (fragment validation + migration flag check). Explains why each layer is necessary, how they compose without conflicting, and how to adopt the pattern independent of the TypeScript implementation.
+
+### Updated
+
+- **`guide/ultimate-guide.md`** (§ Release Notes Generation): Added `### Changelog Fragments: Per-PR Enforcement Pattern` subsection covering the 3-layer approach with fragment YAML example, hook snippet, and assembly command. Positioned as an alternative to commit-based release notes generation, with links to the workflow guide and hook example.
+
+- **`guide/workflows/README.md`**: Added Changelog Fragments entry to Development Workflows section with key topics (CLAUDE.md rule, UserPromptSubmit 3-tier hook, conditional suggestion pattern, independent CI migration check). Added to Quick Selection Guide under "Enforce mandatory workflow steps".
+
+## [3.34.7] - 2026-03-12
+
+### Added
+
+- **`guide/diagrams/11-context-engineering.md`** — 4 new Mermaid diagrams covering context engineering: 3-layer context system (global/project/session scopes), context budget and adherence degradation curve (95%→45% zones + path-scoping fix), monolithic vs modular CLAUDE.md architecture (anti-pattern vs path-scoped approach), and rule placement decision tree.
+
+- **`guide/diagrams/12-enterprise-governance.md`** — 3 new Mermaid diagrams covering enterprise governance: 4-tier risk model (Starter/Team/Production/Regulated with controls per tier), MCP governance approval workflow (sequenceDiagram: submit → audit → classify → registry → deploy → monitor), and data classification matrix (PUBLIC/INTERNAL/CONFIDENTIAL/RESTRICTED with access rules).
+
+### Updated
+
+- **`guide/diagrams/01-foundations.md`**: Added Plan Mode and dontAsk as two new permission mode subgraphs (was showing 3/5 modes, now all 5 CLI permission modes are documented).
+
+- **`guide/diagrams/04-architecture-internals.md`**: Added Control Flow Tools as a 6th tool category (EnterPlanMode/ExitPlanMode, EnterWorktree/ExitWorktree, AskUserQuestion). Count updated 5→6.
+
+- **`guide/diagrams/05-mcp-ecosystem.md`**: Added clarifying note that local + user scopes both live in `~/.claude.json` (separate configuration keys), not in separate files. Description updated "4 different locations" → "4 priority levels (3 actual files)".
+
+- **`guide/diagrams/07-multi-agent-patterns.md`**: Fixed disconnected B2 node — now properly connected as a third branch off the pattern-selection flow.
+
+- **`guide/diagrams/09-cost-and-optimization.md`**: Replaced hardcoded USD prices with relative ratios (Haiku ~5x cheaper than Sonnet, Opus ~5x more than Sonnet) and added disclaimer pointing to anthropic.com/pricing.
+
+- **`guide/diagrams/README.md`**: Updated diagram count 41→48, extended navigation table with files 11 and 12, added two new use-case navigation sections ("govern Claude Code across my team", "improve Claude's context adherence").
+
+## [3.34.6] - 2026-03-12
+
+### Added
+
+- **`guide/workflows/rpi.md`** — New RPI (Research → Plan → Implement) workflow guide (560 lines). 3-phase feature development pattern with explicit validation gates: GO/NO-GO gate after Research, plan approval gate before any code is written, and per-step test gates during implementation. Includes full RESEARCH.md and PLAN.md templates, 3 slash command templates (`/rpi:research`, `/rpi:plan`, `/rpi:implement`), worked example (API rate limiting), comparison table vs dual-instance/spec-first/TDD/direct, and troubleshooting section. Inspired by community patterns from claude-code-best-practice.
+
+- **LLM Day-to-Day Performance Variance** (`guide/core/known-issues.md`): New section documenting session-to-session output variance as expected behavior (not a bug). Covers root causes (MoE routing variance, infrastructure variance, probabilistic inference, context sensitivity), observable signals table (response length, refusals, code style, creativity, verbosity), clear distinction from the Aug-Sep 2025 infrastructure bugs, and 5 mitigation strategies (constrain prompts, fresh context, reformulate and retry, compare against known-good prompt, calibrate by task type).
+
+### Updated
+
+- **`guide/ultimate-guide.md`** (§ Quick Decision Tree): Added RPI entry — "Feasibility is unknown → workflows/rpi.md"
+- **`machine-readable/reference.yaml`**: Added 8 new entries — `rpi_workflow`, `rpi_when_to_use`, `rpi_phase1_research`, `rpi_phase2_plan`, `rpi_phase3_implement`, `rpi_slash_commands`, `rpi_vs_other_workflows`, `known_issues_llm_variance`
+
+## [3.34.5] - 2026-03-12
+
+### Added
+
+- **Blast-Radius Pattern** (grepai section, §8.2): Named pre-refactoring workflow using `grepai trace callers/callees` to enumerate all affected call sites before touching a widely-used function. Run before the refactor, not after compile errors. Includes 3-step bash example.
+
+- **Pre-structural indexing** (§9.13 Token-Saving Techniques): New technique #6 documenting the concept of building a codebase structural index before starting a session. Replaces 5-10 sequential file reads with 1 graph query (~75% fewer tool calls for discovery tasks). Includes CodeXRay setup example (`npx codexray`, `cxr watch`).
+
+- **Dead code & circular dependency detection** (§9.13): Documents three structural analysis patterns — dead code detection (`grepai trace callers` returning zero results), circular dependency identification, and hotspot analysis — as token optimization strategies. References CodeXRay and Claudette as alpha-stage community implementations with grepai as the stable alternative.
+
+## [3.34.4] - 2026-03-12
+
+### Documentation
+
+- **Claude Code Releases**: Updated tracking to v2.1.74 (2026-03-12)
+  - v2.1.74: `/context` actionable suggestions, `autoMemoryDirectory` setting, memory leak fix in streaming buffers, managed policy `ask` rules bypass fix, `SessionEnd` hook timeout fix
+  - v2.1.73: `modelOverrides` setting, deadlock fix for skill hot-reload, subagent model downgrade fix on Bedrock/Vertex/Foundry, Opus 4.6 as default on 3P providers, `/output-style` deprecated
+
+## [3.34.3] - 2026-03-11
+
+### Added
+
+- **MCP Server v1.1.0**: 4 new tools for tracking official Anthropic Claude Code docs
+  - `init_official_docs()` — fetch and store a local baseline snapshot (runs once)
+  - `refresh_official_docs()` — update the "current" snapshot without touching the baseline
+  - `diff_official_docs()` — compare baseline vs current at section level, zero network calls
+  - `search_official_docs(query)` — search official docs, loads only matching sections
+- **Local cache architecture**: 4 files in `~/.cache/claude-code-guide/` (index + content, baseline + current). Diff reads only lightweight index files (~50KB), never the full 1.2MB doc. Atomic writes via `.tmp` + rename to prevent corruption.
+- **5 new slash commands** (`/ccguide:init-docs`, `/ccguide:refresh-docs`, `/ccguide:diff-docs`, `/ccguide:search-docs`, `/ccguide:daily`) — documented in `ultimate-guide.md` and added to `.claude/commands/ccguide/`
+- **`/ccguide:daily`** orchestrates the full daily workflow: refresh → diff official docs → guide/CC digest in one shot
+
+## [3.34.2] - 2026-03-11
+
+### Documentation
+
+- **Claude Code Releases**: Updated tracking to v2.1.72 (2026-03-09)
+  - Restored `model` parameter on Agent tool for per-invocation model overrides
+  - Fixed SDK `query()` prompt cache invalidation — up to 12x input token cost reduction
+  - CLAUDE.md HTML comments now hidden from Claude when auto-injected
+  - Simplified effort levels: low/medium/high (removed max), new symbols ○ ◐ ●
+  - `ExitWorktree` tool added; `CLAUDE_CODE_DISABLE_CRON` env var; `/plan` optional description
+
+## [3.34.1] - 2026-03-11
+
+### Added
+
+- **`guide/workflows/og-image-generation.md`** — New workflow guide for generating dynamic OG images at build time using Satori and resvg in Astro 5. Covers setup, font format requirements (woff1 only), static file shadowing gotcha, dynamic stat counting from content directories, testing with opengraph.xyz / LinkedIn Post Inspector, and three design variants (stats grid, personal branding, terminal badge). Includes CI size check pattern.
+
+- **`examples/scripts/og-image-astro.ts`** — Production-ready template for `src/pages/og-image.png.ts`. Drop into any Astro 5 project. Auto-serves at `/og-image.png`, counts content files dynamically, includes stat card component, author signature, and inline comments on every gotcha.
+
+## [3.34.0] - 2026-03-11
+
+### Added
+
+- **Context Engineering Configurator** (`cc.bruniaux.com/context/`) — Interactive multi-step configurator that generates a personalized CLAUDE.md starter kit. 5-screen flow: profile (team size, AI tools), current state (existing CLAUDE.md, rules files), stack (language, frontend), results (generated artifacts + maturity assessment). Features: generated CLAUDE.md preview with copy-to-clipboard, Profile YAML for team setups, maturity badge (Level 1-5), personalized next-steps roadmap, localStorage persistence. Vanilla JS, no framework. Nav: added "Context" to landing header dropdown.
+
+- **`guide/core/context-engineering.md`** — New consolidated reference (1,188 lines) covering all context engineering concepts. 8 sections: (1) What is Context Engineering (Karpathy's definition, prompt vs. context engineering distinction, three-layer model); (2) The Context Budget (token math, 150-instruction ceiling, HumanLayer 15-25% adherence data, path-scoping efficiency, overload signs); (3) Configuration Hierarchy (global/project/session split, decision tree for rule placement, override semantics); (4) Modular Architecture (path-scoping, skills vs. rules distinction, progressive disclosure, anti-pattern: monolithic CLAUDE.md); (5) Team Assembly (N×M×P problem, profile YAML, assembly workflow, CI drift detection, module library structure); (6) Context Lifecycle (instruction debt, update loop, knowledge feeding, ACE pipeline, session retrospective); (7) Quality Measurement (self-evaluation questions, canary checks, adherence tracking, context debt score formula); (8) Context Reduction Techniques (path-scoping -40-50%, negative constraints +15-25%, rule compression, deduplication, archive pattern).
+
+- **`examples/context-engineering/`** — 10 production-ready templates: `README.md` (overview + quick start), `profile-template.yaml` (developer profile for context assembly), `skeleton-template.md` (CLAUDE.md skeleton with filled placeholders), `assembler.ts` (~240-line TypeScript script for profile-based assembly with @import resolution, dry-run support, token estimation), `eval-questions.yaml` (20 self-evaluation questions across 4 dimensions), `canary-check.sh` (5-check behavioral regression script), `ci-drift-check.yml` (weekly GitHub Actions drift detection with auto-issue creation), `context-budget-calculator.sh` (measures always-on token cost), `rules/knowledge-feeding.md` (proactive context update protocol), `rules/update-loop-retro.md` (session retrospective template).
+
+- **`tools/context-audit-prompt.md`** — Self-contained context audit prompt (543 lines) following `audit-prompt.md` pattern. Scores context engineering setup /100 across 8 dimensions: Size & Budget (15 pts), Structure (15 pts), Path-Scoping (12 pts), Rule Quality (15 pts), Freshness (12 pts), Team Readiness (10 pts), Conflict Detection (11 pts), Knowledge Loop (10 pts). Includes 3 bash scan phases, report format with context budget breakdown, 5-level maturity ladder, and ready-to-use paste improvements.
+
+- **`src/data/context-data.ts`** (landing) — TypeScript data file with all configurator types, option arrays (team size, AI tools, stack, frontend), maturity level definitions (5 levels: Starter/Modular/Team-Ready/Measured/Adaptive), and template generators (`generateClaudeMd`, `generateProfileYaml`, `calculateMaturityLevel`).
+
+### Updated
+
+- **`guide/README.md`** — Added `core/context-engineering.md` row to Core Reference table.
+- **`machine-readable/reference.yaml`** — Added 24 context engineering entries with paths to guide, examples, tools, and landing configurator.
+- **`src/components/global/Header.astro`** (landing) — Added "Context" to moreLinks dropdown.
+
+## [3.33.1] - 2026-03-10
+
+### Updated
+
+- **RTK documentation updated to v0.28.0** — Synced RTK coverage across `guide/ultimate-guide.md`, `guide/ecosystem/third-party-tools.md`, `machine-readable/reference.yaml`, and global `~/.claude/{CLAUDE.md,RTK.md}`. New content: TOML Filter DSL (declarative filters without Rust, 33+ built-in filters, `.rtk/filters.toml` project-local and `~/.config/rtk/filters.toml` global lookup chain); `rtk rewrite` command (v0.25.0 single source of truth for hook rewrites, migration note: `rtk init --global` required after upgrade); new modules — `rtk docker compose`, `rtk mypy`, `rtk aws`, `rtk psql`, `rtk cargo nextest`, `rtk gt` (Graphite CLI), `rtk wc`; `rtk gain -p` per-project savings; `rtk init --global` with settings.json auto-patch; `exclude_commands` config; SHA-256 hook integrity verification; hook outdated warning.
+
+## [3.33.0] - 2026-03-10
+
+### Fixed
+
+- **`guide/security/enterprise-governance.md` — Accuracy review pass** — 6 correctness issues fixed after adversarial critique: (1) Non-existent hooks removed from all tier `settings.json` configs (`dependency-guard.sh`, `compliance-pre-check.sh`, `pii-detector.sh`, `compliance-session-init.sh` were referenced but never existed in `examples/hooks/bash/`); (2) `compliance-audit-logger.sh` in Regulated tier replaced with real `session-logger.sh`; (3) Fabricated Claude Code API removed — `CLAUDE_SETTINGS` env var and `claude run-headless` subcommand don't exist; replaced with an honest CI pipeline validation pattern; (4) `date -d '30 days ago'` (GNU coreutils only) fixed to cross-platform with macOS/Linux `$OSTYPE` check; (5) Customer PII reclassified from CONFIDENTIAL to RESTRICTED — Enterprise plan (ZDR) alone doesn't satisfy GDPR/CCPA; (6) All `// comment` lines inside JSON code blocks removed (invalid JSON, breaks copy-paste).
+
+### Added
+
+- **Enterprise AI Governance section** (`guide/security/enterprise-governance.md`) — New guide covering org-level governance for teams deploying Claude Code at scale. 6 sections: (1) Local vs Shared governance split (risk matrix, decision framework); (2) AI Usage Charter — lean template covering approved tools, data classification, use case boundaries, approval matrix; (3) MCP Governance Workflow — approval pipeline (request → review → approve → deploy), YAML registry format, enforcement hook; (4) Guardrail Tiers — 4 pre-configured tiers (Starter/Standard/Strict/Regulated) with ready-to-copy `settings.json` and `CLAUDE.md` additions; (5) Policy Enforcement at Scale — config distribution, onboarding checklist, compliance audit script, role-based guardrails, CI/CD gates; (6) Audit & Compliance — what SOC2/ISO27001 auditors actually ask, audit trail setup, AI Governance Committee minimal structure. Audience: tech leads, engineering managers, security officers. Complements security-hardening.md (individual dev security) and production-safety.md (6 prod rules).
+
+- **MCP Registry Template** (`examples/scripts/mcp-registry-template.yaml`) — Ready-to-use YAML format for tracking approved MCP servers at org level. Includes approved/pending/denied sections, version bump policy, risk classification (LOW/MEDIUM/HIGH), data scope classification (PUBLIC/INTERNAL/CONFIDENTIAL/RESTRICTED), and expiry dates.
+
+- **Governance Enforcement Hook** (`examples/hooks/bash/governance-enforcement-hook.sh`) — SessionStart hook validating active MCP configuration against org's approved registry, checking deny rules for secret files, and detecting dangerous `permissions.allow` overrides. Warns without blocking (governance-first, not friction-first).
+
+- **AI Usage Charter Template** (`examples/scripts/ai-usage-charter-template.md`) — Org-level charter template covering approved tools, data classification (4 levels), approved/prohibited use cases, MCP server governance, code review and attribution requirements, accountability roles, incident response, and compliance mapping (SOC2/ISO27001/HIPAA/PCI DSS/GDPR).
+
+### Documentation
+
+- **`guide/roles/adoption-approaches.md`** — Added "Enterprise Rollout (50+ developers)" section with 3-phase rollout approach (Foundation/Adoption/Optimization), common rollout mistakes at scale, and pointer to enterprise-governance.md for compliance programs.
+
+- **`guide/ops/observability.md`** — Added "Manager Audit Checklist" section with weekly spot-check bash queries (files accessed outside project scope, destructive commands run) and a monthly compliance report script.
+
+- **`guide/ops/ai-traceability.md`** — Added "Evidence Collection for Auditors" subsection under §7.3 Enterprise/Compliance — practical table mapping auditor questions to evidence sources and generation commands.
+
+- **`guide/security/production-safety.md`** — Added cross-reference to enterprise-governance.md in See Also section.
+
+- **`guide/security/security-hardening.md`** — Added cross-reference to enterprise-governance.md with explicit scope boundary ("this guide = individual MCP vetting; that guide = org-level policy"), plus MCP registry template reference.
+
+- **`guide/README.md`** — Added enterprise-governance.md entry in Security section.
+
+- **`machine-readable/reference.yaml`** — Added 22 entries for enterprise governance guide, templates, and hooks.
+
 ### Changed
 
 - **GEO/SEO optimization — llms.txt, llms-full.txt, guide meta descriptions** — Phase 1 (repo): `machine-readable/llms.txt` updated (v3.8.0→3.32.2, 87→238 templates, 9.6K→22.7K lines); `llms.txt` created at repo root (convention llmstxt.org — AI crawlers expect root); `llms-full.txt` created (~20KB: full cheatsheet, 238-template catalog, 10 Q&A FAQ); `mcp-server/content/llms.txt` synced. Phase 2 (landing): `public/llms.txt` synced, `public/llms-full.txt` created; stale root `robots.txt` (wrong sitemap URL, missing 6 AI bots) and `sitemap.xml` (6 URLs only) deleted — `public/` versions are canonical. Phase 3 (landing): JSON-LD counts fixed (113→238 in `examples/index.astro`, description sync in `index.astro`); `twitter:site` + `twitter:creator` added to `Layout.astro`; CVE stat 19→24 in security page; `lastmod` added to all sitemap entries in `astro.config.mjs`. Phase 4 (README): invisible HTML keyword comment replaced with visible 5 Q&A mini-FAQ (GEO crawlers + humans). Phase 5 (guide section): 13 `CHAPTERS` descriptions rewritten in `scripts/prepare-guide-content.mjs` (source of truth for Starlight frontmatter) — avg 40→150 chars, now include specific agent names, hook event types, MCP server names, pattern names.
@@ -30,7 +248,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Claude Code Security note enriched §7.4** (`guide/ultimate-guide.md`) — added Mozilla Firefox validation context (March 2026): Opus 4.6 scanned ~6,000 C++ files in Firefox's JS engine, surfaced 22 confirmed vulnerabilities (14 high severity) in two weeks. Reinforces the "limited research preview" note with production evidence.
 
-- **Pipelex + MTHDS added** (`guide/third-party-tools.md`) — new entry in "External Orchestration Frameworks" for Pipelex, Python runtime of the open MTHDS standard. Declarative DSL (`.mthds` files) for creating typed, git-versionable, multi-LLM AI methods. Integrates natively with Claude Code via `/plugin marketplace add mthds-ai/skills`. 623 stars (MIT, created May 2025). Status "Watch" — MTHDS standard not yet validated at scale. Architectural note distinguishing Pipelex (DSL for pipelines) from Ruflo/AthenaFlow (agent orchestration).
+- **Pipelex + MTHDS added** (`guide/ecosystem/third-party-tools.md`) — new entry in "External Orchestration Frameworks" for Pipelex, Python runtime of the open MTHDS standard. Declarative DSL (`.mthds` files) for creating typed, git-versionable, multi-LLM AI methods. Integrates natively with Claude Code via `/plugin marketplace add mthds-ai/skills`. 623 stars (MIT, created May 2025). Status "Watch" — MTHDS standard not yet validated at scale. Architectural note distinguishing Pipelex (DSL for pipelines) from Ruflo/AthenaFlow (agent orchestration).
 
 - **Diagrams updated — 3 files** (`guide/diagrams/`) — Mermaid diagrams updated following releases v2.1.59–v2.1.69 and documentation corrections v3.29–v3.31. (1) `02-context-and-sessions.md`: Memory Hierarchy goes from 5 to 6 types — addition of **Native Auto-Memory** (`~/.claude/projects/*/memory/MEMORY.md`, v2.1.59+) between Subdirectory CLAUDE.md and In-Conversation Context, cross-session scope, distinct green style from ephemeral types. (2) `03-configuration-system.md`: Hooks Event Pipeline enriched with 3 new events — `InstructionsLoaded` (v2.1.69+, session start), `UserPromptSubmit` (before PreToolUse, exit 2 = feedback), `Stop / SessionEnd` (renamed) — and a note on the HTTP type (POST JSON, v2.1.63+). (3) `05-mcp-ecosystem.md`: Official Servers goes from 3 to 5 entries — added `git-mcp` (official Anthropic, 12 git tools) and `github-mcp` (official GitHub, full platform).
 
@@ -86,7 +304,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Documentation
 
-- **Conductor section enriched** (`guide/third-party-tools.md:376`) — section rewritten from 5 generic bullets to 6 structured subsections, verified against official changelog (conductor.build). Added: workspace status system (backlog → done, v0.35.0), Next Workspace button for agent queue navigation (v0.36.4), turn-by-turn diff viewer (v0.22.0), Manual Mode built-in editor replacing VSCode for quick edits (v0.37.0), full GitHub/CI integration details (Actions tab v0.33.2, failing CI → Claude auto-fix v0.12.0, PR workflow with `⌘⇧P`), Linear deeplinks, Codex support alongside Claude, Melty Labs attribution. Community workflow pattern added: 5+ parallel features across multiple repos, BMAD + Conductor combo for spec-driven development (user-reported, unverified claim clearly marked).
+- **Conductor section enriched** (`guide/ecosystem/third-party-tools.md:376`) — section rewritten from 5 generic bullets to 6 structured subsections, verified against official changelog (conductor.build). Added: workspace status system (backlog → done, v0.35.0), Next Workspace button for agent queue navigation (v0.36.4), turn-by-turn diff viewer (v0.22.0), Manual Mode built-in editor replacing VSCode for quick edits (v0.37.0), full GitHub/CI integration details (Actions tab v0.33.2, failing CI → Claude auto-fix v0.12.0, PR workflow with `⌘⇧P`), Linear deeplinks, Codex support alongside Claude, Melty Labs attribution. Community workflow pattern added: 5+ parallel features across multiple repos, BMAD + Conductor combo for spec-driven development (user-reported, unverified claim clearly marked).
 
 - **Claude Code Releases tracking**: Updated to v2.1.69 (from v2.1.66)
   - v2.1.69: InstructionsLoaded hook, 4 security fixes (nested skills/symlink bypass/trust dialog/sandbox), 15+ memory leak fixes, Voice STT 20 languages, ${CLAUDE_SKILL_DIR}, /reload-plugins
@@ -103,15 +321,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **Entire CLI enrichment (6 sections, 4 files)** — integration of production analysis issue #802 (Méthode Aristote) into the guide. Content added: (1) `guide/ai-traceability.md` — complete "workflow without vs with Entire" diagram showing the 7 hooks and what they capture (UserPromptSubmit, PreToolUse, PostToolUse, Stop...), actual checkpoint structure (`entire/checkpoints/v1/` with metadata.json + full.jsonl + prompt.txt + context.md), orphan branch diagram (no common ancestor = zero merge conflict), Go/No-Go table with measurable thresholds (< 10 MB/session, push < 5s, < 100 MB/week) and 2h spike commands. (2) `guide/ai-ecosystem.md` — Claude → Gemini agent handoffs diagram with context preservation (reasoning trace, touched files, decisions, rejected approaches), "no cold start" explanation. (3) `guide/third-party-tools.md` — delta table vs existing setups (7-day JSONL vs permanent checkpoints, absent human/AI attribution vs % per line, silent handoffs vs auto-passed context). (4) `guide/security-hardening.md` — approval gate flow diagram (policy check → low risk auto-OK / high risk → reviewer transcript + diffs → approve/reject → immutable audit trail). Source: [github.com/methode-aristote/app/issues/802](https://github.com/methode-aristote/app/issues/802).
+- **Entire CLI enrichment (6 sections, 4 files)** — integration of production analysis issue #802 (Méthode Aristote) into the guide. Content added: (1) `guide/ops/ai-traceability.md` — complete "workflow without vs with Entire" diagram showing the 7 hooks and what they capture (UserPromptSubmit, PreToolUse, PostToolUse, Stop...), actual checkpoint structure (`entire/checkpoints/v1/` with metadata.json + full.jsonl + prompt.txt + context.md), orphan branch diagram (no common ancestor = zero merge conflict), Go/No-Go table with measurable thresholds (< 10 MB/session, push < 5s, < 100 MB/week) and 2h spike commands. (2) `guide/ecosystem/ai-ecosystem.md` — Claude → Gemini agent handoffs diagram with context preservation (reasoning trace, touched files, decisions, rejected approaches), "no cold start" explanation. (3) `guide/ecosystem/third-party-tools.md` — delta table vs existing setups (7-day JSONL vs permanent checkpoints, absent human/AI attribution vs % per line, silent handoffs vs auto-passed context). (4) `guide/security/security-hardening.md` — approval gate flow diagram (policy check → low risk auto-OK / high risk → reviewer transcript + diffs → approve/reject → immutable audit trail). Source: [github.com/methode-aristote/app/issues/802](https://github.com/methode-aristote/app/issues/802).
 
 - **`issue-triage` skill** (`examples/skills/issue-triage/`) — 3-phase issue backlog management for maintainers: automated audit of all open issues (categorization, Jaccard duplicate detection against open + 20 recent closed, risk classification Red/Yellow/Green, staleness 30/90-day thresholds, cross-reference to open PRs), opt-in deep analysis via parallel agents (full body + comments, duplicate verification, missing-info detection, effort estimate), and validated triage actions with mandatory `AskUserQuestion` gate (comment / label / close with close-reason). Jaccard algorithm is self-contained at runtime (no external library: normalize → tokenize → set intersection/union → threshold 0.60). Cross-referenced with `/pr-triage` for PR-side backlog management.
 
 - **`pr-triage` skill** (`examples/skills/pr-triage/`) — 3-phase PR backlog management for maintainers: automated audit of all open PRs (size classification, overlap detection, cluster analysis, staleness, CI status, PR-issue linking), opt-in deep review via parallel `code-reviewer` agents, and validated comment posting with mandatory `AskUserQuestion` gate. Stack-agnostic (Node/TS, Python, Rust, Go checklists included), cross-platform clipboard (pbcopy/xclip/wl-copy/clip.exe), and cross-referenced with `/review-pr` for single-PR use cases.
 
-- **External Orchestration Frameworks** (`guide/third-party-tools.md`, new section) — new category architecturally distinct from existing multi-instance tools (Gas Town, multiclaude). Documented distinction: launching multiple Claude Code instances in parallel vs. replacing/augmenting the internal orchestration layer with a full runtime. Two tools covered: (1) **Ruflo** (formerly claude-flow, 18.9k stars) — most adopted framework, hierarchical queen + workers swarms, 60+ specialized agents, Q-Learning router, 42+ skills, 17 hooks, SQLite persistence. Install recommendation via `npx ruflo@latest` (not curl|bash). Performance claims (84.8% SWE-Bench, 352x WASM) marked unverified, ongoing rebrand documented. (2) **Athena Flow** — different architecture (hooks → UDS → NDJSON → Node.js runtime → TUI), intercepts hook events rather than augmenting the agent layer. First workflow: autonomous Playwright E2E test builder. Status "Watch — not recommended yet" (project too recent, source audit missing). Complete evaluations: `docs/resource-evaluations/073-athena-flow-workflow-runtime.md` (2/5 Watch) and `074-ruflo-multi-agent-orchestration.md` (3/5 Pertinent).
+- **External Orchestration Frameworks** (`guide/ecosystem/third-party-tools.md`, new section) — new category architecturally distinct from existing multi-instance tools (Gas Town, multiclaude). Documented distinction: launching multiple Claude Code instances in parallel vs. replacing/augmenting the internal orchestration layer with a full runtime. Two tools covered: (1) **Ruflo** (formerly claude-flow, 18.9k stars) — most adopted framework, hierarchical queen + workers swarms, 60+ specialized agents, Q-Learning router, 42+ skills, 17 hooks, SQLite persistence. Install recommendation via `npx ruflo@latest` (not curl|bash). Performance claims (84.8% SWE-Bench, 352x WASM) marked unverified, ongoing rebrand documented. (2) **Athena Flow** — different architecture (hooks → UDS → NDJSON → Node.js runtime → TUI), intercepts hook events rather than augmenting the agent layer. First workflow: autonomous Playwright E2E test builder. Status "Watch — not recommended yet" (project too recent, source audit missing). Complete evaluations: `docs/resource-evaluations/073-athena-flow-workflow-runtime.md` (2/5 Watch) and `074-ruflo-multi-agent-orchestration.md` (3/5 Pertinent).
 
-- **For Tech Leads & Engineering Managers** (`guide/learning-with-ai.md`, new §12) — dedicated section for tech leads and engineering managers, a blind spot identified through resource evaluation (Mathieu Eveillard, "Génération LLM"). The guide only covered the individual perspective; this section addresses organizational responsibility. Content: 4-week onboarding model (week 1 without AI for calibration before the tool masks gaps, validated by Create Future 2025: structured training → 14-42% → 35-65% time savings), 5 real growth metrics vs. velocity, 3 scalable mentoring models (pair rotations, 15min/week architecture hot seat, collective CLAUDE.md), AI team policy template for shared `CLAUDE.md`, 6 team-level warning signs with specific responses, quick checklist. New "Team & Organizational Research" section in sources (Create Future 2025, Stanford Digital Economy 2025, LeadDev, Stack Overflow Gen Z). Evaluation file created: `docs/resource-evaluations/2026-03-04-eveillard-generation-llm.md`.
+- **For Tech Leads & Engineering Managers** (`guide/roles/learning-with-ai.md`, new §12) — dedicated section for tech leads and engineering managers, a blind spot identified through resource evaluation (Mathieu Eveillard, "Génération LLM"). The guide only covered the individual perspective; this section addresses organizational responsibility. Content: 4-week onboarding model (week 1 without AI for calibration before the tool masks gaps, validated by Create Future 2025: structured training → 14-42% → 35-65% time savings), 5 real growth metrics vs. velocity, 3 scalable mentoring models (pair rotations, 15min/week architecture hot seat, collective CLAUDE.md), AI team policy template for shared `CLAUDE.md`, 6 team-level warning signs with specific responses, quick checklist. New "Team & Organizational Research" section in sources (Create Future 2025, Stanford Digital Economy 2025, LeadDev, Stack Overflow Gen Z). Evaluation file created: `docs/resource-evaluations/2026-03-04-eveillard-generation-llm.md`.
 
 - **Compound Engineering patterns** (`guide/ultimate-guide.md`, 4 insertions) — portable patterns from Every.to's compound-engineering plugin (Kieran Klaassen, prod-tested on Cora), previously absent from the guide. (1) **Named Perspective Agents**: distinction between persona roleplay (anti-pattern, prohibited §3.x) and named perspective (DHH = fat models + thin controllers + pragmatic REST condensed into one token), with caveat on drift between Claude versions. (2) **Swarm vs Sequential**: comparison table of the two multi-agent coordination modes, decision rule (Swarm = independent + thoroughness, Teams = sequential dependencies). (3) **Skill Quality Gates**: 9-criteria checklist going beyond frontmatter validation (`/audit-agents-skills`). (4) **Brainstorm-before-planning + documentary hierarchy**: `docs/brainstorms/ → docs/plans/` workflow before coding, table of 5 directories with their distinct roles (CLAUDE.md = rules, solutions/ = solved problems, brainstorms/ = thinking, plans/ = active plans, todos/ = ephemeral tasks). Formal evaluation: `docs/resource-evaluations/2026-03-04-compound-engineering-every-to.md` (4/5 HIGH VALUE).
 
@@ -119,7 +337,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Design Reference File pattern** (`examples/claude-md/design-reference-file.md`) — field pattern from Boris Paillard / mixt.care evaluation (March 2026). Principle: keep `brand-book.html` and `ui-kit.html` at the project root as permanent context files — Claude Code reads them before any UI generation, ensuring design system consistency across sessions without re-prompting. Content: CLAUDE.md activation snippet, 4 complete prompts (brand-book with integrated WCAG, Tailwind ui-kit, WCAG 2.1 color audit + color blindness simulation, vanilla JS Intersection Observer scroll animations), palette example with CSS semantic roles (mixt.care), WCAG correction notes (e.g. copper #B87333 fails for normal text → fix to #9B5F20). Evaluation: `docs/resource-evaluations/075-paillard-design-system-first-website.md` (3/5).
 
-- **Straude** (`guide/third-party-tools.md`, Token & Cost Tracking section) — complete entry for straude.com, a social dashboard for tracking Claude Code usage with leaderboard and streaks. Includes: functional description, table of data transmitted to the server (costs, tokens, models, hostname), security analysis based on direct source code inspection (`npm pack straude@0.1.9`), verdict (no malware, reservations about maturity and lack of privacy policy), `--dry-run` recommendation on first use. Complete evaluation: `docs/resource-evaluations/straude-evaluation.md`. Entries added in `machine-readable/reference.yaml`.
+- **Straude** (`guide/ecosystem/third-party-tools.md`, Token & Cost Tracking section) — complete entry for straude.com, a social dashboard for tracking Claude Code usage with leaderboard and streaks. Includes: functional description, table of data transmitted to the server (costs, tokens, models, hostname), security analysis based on direct source code inspection (`npm pack straude@0.1.9`), verdict (no malware, reservations about maturity and lack of privacy policy), `--dry-run` recommendation on first use. Complete evaluation: `docs/resource-evaluations/straude-evaluation.md`. Entries added in `machine-readable/reference.yaml`.
 
 ## [3.30.1] - 2026-03-04
 
@@ -190,11 +408,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Tool comparison table extended to 5 tools** (`guide/ultimate-guide.md` §Migration from Other Tools) — added Windsurf and Zed, fixed Cursor pricing.
 - **Subscription quotas: "Claude Code prompts / 5h" column** (`guide/ultimate-guide.md` §Subscription Plans & Limits) — Pro ~10-40, Max 5x ~50-200, Max 20x ~200-800.
 - **Resource evaluation: benchmark AI coding tools Feb 2026** (`docs/resource-evaluations/benchmark-ai-coding-tools-feb2026.md`) — score 3/5, 2 items integrated.
-- **Claude Code v2.1.63 release tracking** — `machine-readable/claude-code-releases.yaml` + `guide/claude-code-releases.md`: v2.1.61–v2.1.63 (HTTP hooks, worktree config sharing, `/simplify` + `/batch`, `ENABLE_CLAUDEAI_MCP_SERVERS`).
+- **Claude Code v2.1.63 release tracking** — `machine-readable/claude-code-releases.yaml` + `guide/core/claude-code-releases.md`: v2.1.61–v2.1.63 (HTTP hooks, worktree config sharing, `/simplify` + `/batch`, `ENABLE_CLAUDEAI_MCP_SERVERS`).
 - **HTTP hooks documentation** (`guide/ultimate-guide.md` §7.2) — `"http"` type (v2.1.63+): POST JSON → JSON response, config example with `allowedEnvVars`.
 - **Resource evaluation W09-2026** (`docs/resource-evaluations/weekly-intel-2026-W09.md`) — score 4/5, 3 items integrated.
 - **Section 9.23 — Configuration Lifecycle & The Update Loop** (`guide/ultimate-guide.md`) — continuous improvement loop, `detect-friction.sh` script, skills lifecycle, "The Update Loop" pattern.
-- **Observability: Reading for Quality, Not Just Quantity** (`guide/observability.md`) — 3 qualitative patterns with `jq` commands.
+- **Observability: Reading for Quality, Not Just Quantity** (`guide/ops/observability.md`) — 3 qualitative patterns with `jq` commands.
 - **MCP Server: 3 new tools** — `compare_versions`, `get_threat`/`list_threats`, `search_examples` (8 → 12 tools total).
 - **Terminal Personalization Settings** (`guide/ultimate-guide.md` §3.3) — `spinnerVerbs`, `spinnerTipsOverride`, complete example `examples/config/settings-personalization.json`.
 
@@ -206,14 +424,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Resource evaluation: benchmark AI coding tools Feb 2026** (`docs/resource-evaluations/benchmark-ai-coding-tools-feb2026.md`) — evaluation of a comparative 5-tool benchmark (Claude Code, Cursor, Windsurf, Zed, Copilot Workspace), text copied without source URL. Score 3/5 (relevant, selective integration). 2 net items integrated: prompts/5h quotas + comparison table extension. 4 recommendations rejected (already covered).
 
-- **Claude Code v2.1.63 release tracking** — `machine-readable/claude-code-releases.yaml` + `guide/claude-code-releases.md` updated with v2.1.61, v2.1.62, v2.1.63 (HTTP hooks, worktree config sharing, `/simplify` + `/batch` bundled commands, `ENABLE_CLAUDEAI_MCP_SERVERS` env var, wave of memory leak fixes)
+- **Claude Code v2.1.63 release tracking** — `machine-readable/claude-code-releases.yaml` + `guide/core/claude-code-releases.md` updated with v2.1.61, v2.1.62, v2.1.63 (HTTP hooks, worktree config sharing, `/simplify` + `/batch` bundled commands, `ENABLE_CLAUDEAI_MCP_SERVERS` env var, wave of memory leak fixes)
 
 - **HTTP hooks documentation** (`guide/ultimate-guide.md` §7.2 Creating Hooks) — new hook type `"http"` (v2.1.63+): POST JSON to a URL, receives JSON in return. Added to the Configuration Fields table, descriptive bullet point, and complete config example with `allowedEnvVars`
 
 - **Resource evaluation W09-2026** (`docs/resource-evaluations/weekly-intel-2026-W09.md`) — evaluation of the Anthropic/Claude Code weekly watch report (Feb 24 – Mar 1, 2026): score 4/5, 3 items integrated (v2.1.63 releases, HTTP hooks, Haiku 3 deadline note already present), 3 items rejected (Cowork, DoW, Vercept)
 
 - **Section 9.23 — Configuration Lifecycle & The Update Loop** (`guide/ultimate-guide.md`) — continuous improvement loop for Claude Code configurations: friction detection from JSONL logs (`detect-friction.sh` script), skills lifecycle management (semantic versioning, deprecation, CI staleness check GitHub Actions), "The Update Loop" pattern (observe → analyze → delta update → canary test), handoff integration, DSPy/TextGrad mentions
-- **Observability: Reading for Quality, Not Just Quantity** (`guide/observability.md`) — new subsection in "Analyzing Session Data": 3 qualitative patterns (repeated reads, tool failures, high edit frequency) with ready-to-use `jq` commands, linked to §9.23
+- **Observability: Reading for Quality, Not Just Quantity** (`guide/ops/observability.md`) — new subsection in "Analyzing Session Data": 3 qualitative patterns (repeated reads, tool failures, high edit frequency) with ready-to-use `jq` commands, linked to §9.23
 
 - **Git MCP Server + GitHub MCP Server** (`guide/ultimate-guide.md` §8.2 MCP Server Catalog) — two new servers documented in the MCP catalog:
   - **Git MCP Server** (official Anthropic, `mcp-server-git`): 12 tools for local Git operations (git_status, git_diff, git_commit, git_log, git_create_branch, etc.), `uvx` setup, multi-repo config, Git MCP vs Bash comparison, typical workflows. Status: early dev.
@@ -281,7 +499,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - CLI flags table: `remote-control` subcommand
   - Slash commands table: `/remote-control`, `/rc`, `/mobile`
 
-- **`guide/security-hardening.md`** — Part 7: Remote Control Security
+- **`guide/security/security-hardening.md`** — Part 7: Remote Control Security
   - Architecture diagram (outbound-only HTTPS relay model)
   - Threat model: session URL leak, RCE surface, corporate policy, persistent exposure
   - Community perspective (senior dev security concerns)
@@ -324,7 +542,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Compatible with 14 AI assistants (Claude Code, Cursor, Copilot, Windsurf…)
   - Installation guide, workflows, usage examples
 
-- **guide/observability.md** — Complete MLflow Tracing section (~120 lines)
+- **guide/ops/observability.md** — Complete MLflow Tracing section (~120 lines)
   - CLI mode (zero Python) + SDK mode with API wrapping
   - LLM-as-judge for automatic quality regression
   - Exact token counts vs ~15-25% variance from hooks
@@ -395,7 +613,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Confirmed gap: no existing tool in the guide combines FTS + visual analytics (heatmaps, velocity) in a local web UI
   - Barriers: 4-day-old repo (created Feb 19, 2026), 49 stars at time of evaluation
   - Author credibility: Wes McKinney (creator of pandas)
-  - Integration plan: `guide/observability.md` External Monitoring Tools section + mention in `guide/third-party-tools.md`
+  - Integration plan: `guide/ops/observability.md` External Monitoring Tools section + mention in `guide/ecosystem/third-party-tools.md`
   - Initial score 4/5 → challenged to 3/5 (adoption not established) + placement corrected to `observability.md`
 
 - **guide/ultimate-guide.md §5.5** — New entry "Design Intelligence: UI UX Pro Max" in Community Skill Repositories
@@ -454,7 +672,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - fp.dev = agent-native local-first issue tracker for Claude Code (issues as git-committable `.md`, skills `/fp-plan` `/fp-implement` `/fp-review`, diff viewer)
   - Real differentiator vs Tasks API: committable issues in the repo. But insufficient adoption + Apple Silicon only + partial overlap with native Tasks API
   - File: `docs/resource-evaluations/2026-02-22-fp-dev-issue-tracker.md`
-  - **Known Gap added** in `guide/third-party-tools.md`: "Agent-native issue tracking (markdown-based, git-committable)"
+  - **Known Gap added** in `guide/ecosystem/third-party-tools.md`: "Agent-native issue tracking (markdown-based, git-committable)"
   - **Watch List**: re-evaluate when GitHub stars visible + release cadence + practitioner prod write-up
 
 ## [3.28.1] - 2026-02-22 (security patch)
@@ -468,7 +686,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - **5 new scanning tools catalogued**: Proximity (open-source), Enkrypt AI MCP Scanner, Cisco MCP Scanner (behavioral analysis), NeuralTrust MCP Scanner, MCPScan.ai
   - **Defensive resource**: Anthropic Claude Code Security (AI-powered codebase scanner, launched 2026-02-21)
   - **4 new sources**: Lakera "Agent Skill Ecosystem" audit (4310 OpenClaw skills), Penligent AI CVE-2026-0755, Snyk mcp-run-python SSRF, THN Anthropic CC Security
-- **guide/security-hardening.md** — CVE table updated with CVE-2026-0755 and mcp-run-python SSRF entries + critical warning note (no patch available)
+- **guide/security/security-hardening.md** — CVE table updated with CVE-2026-0755 and mcp-run-python SSRF entries + critical warning note (no patch available)
 
 ## [3.28.1] - 2026-02-22
 
@@ -506,11 +724,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **guide/ultimate-guide.md — critical claude-mem gotchas** (section claude-mem)
   - Hooks coexistence: before/after JSON, silent overwrite risk documented
   - Fail-open v9.1.0+: worker down doesn't block Claude Code, restart instructions
-- **guide/methodologies.md**: cross-reference to Boris Tane Pattern from Plan-First section
+- **guide/core/methodologies.md**: cross-reference to Boris Tane Pattern from Plan-First section
 - **machine-readable/reference.yaml**: 4 new entries (`annotation_cycle_pattern`, `custom_markdown_plans`, `boris_tane_source`, `boris_tane_author`)
 - **docs/resource-evaluations/boris-tane-how-i-use-claude-code.md**: formal evaluation (score 4/5, fact-check, integration decision)
 - **docs/resource-evaluations/aristote-ai-instructions-patterns.md**: Méthode Aristote production patterns analysis (24 ai-instructions files)
-- **guide/security-hardening.md — Part 4: Integration** (+104 lines)
+- **guide/security/security-hardening.md — Part 4: Integration** (+104 lines)
   - **4.1 PR Security Review Workflow**: 3-agent pipeline (security-auditor → data flow trace → security-patcher), ready-to-use prompts
   - Table by change type (API endpoint, DB query, auth, file upload, third-party lib) with risk levels
   - Git `pre-push` hook to alert on sensitive files (auth, payment, token, session)
@@ -531,7 +749,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **docs/resource-evaluations/2026-02-22-boris-cherny-worktree-tips-reddit.md**: evaluation of Boris Cherny Reddit/Twitter (Claude Code creator) — 5 worktree tips, 40.2K views
 - **docs/resource-evaluations/2026-02-22-guillaume-moigneu-worktree-linkedin.md**: evaluation of Guillaume Moigneu LinkedIn (Solution Architect @ Upsun) — built-in git worktree support
 
-- **guide/observability.md — 3 new monitoring sections** (+214 lines)
+- **guide/ops/observability.md — 3 new monitoring sections** (+214 lines)
   - **Activity Monitoring**: audit of Claude Code actions via session JSONL — which files were read, commands executed, URLs fetched. Ready-to-use `jq` queries. Table of sensitive patterns (.env, rm -rf, external WebFetch)
   - **External Monitoring Tools**: comparison table ccusage / claude-code-otel / Akto / MLflow / ccboard with decision guide and install examples
   - **Proxying Claude Code**: why Proxyman/Charles fail (Node.js ignores system proxies), 4 solutions: `NODE_EXTRA_CA_CERTS`, `ANTHROPIC_API_URL`, mitmproxy (recommended), minimal Python proxy
@@ -631,7 +849,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Concrete example: over-scoped task vs properly-sized vertical slice
   - Inspired by Allan Hill (Fractional CTO) — [evaluation](docs/resource-evaluations/2026-02-19-allanhillgeek-decomposition-agentic-dev.md) (3/5)
 
-- `guide/methodologies.md`: Expanded ATDD section with agentic application
+- `guide/core/methodologies.md`: Expanded ATDD section with agentic application
   - Added 3-step agent workflow: Gherkin → failing tests → implementation
   - Gherkin example for "password reset" feature
   - Practical note: how to pass Gherkin file to Claude Code as task contract
@@ -642,7 +860,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Multi-agent pipeline BREAK→MODEL→ACT→DEBRIEF with 6 tooled validation gates (Node.js)
   - "No Spec No Code" + "No Task No Commit" invariants enforced via hooks — enforcement pattern not documented in the guide
   - Transparent token budget per phase (~900K total) — unique concrete estimate in the ecosystem
-  - Mention added in `guide/methodologies.md` (SDD Tools table) and `guide/workflows/spec-first.md` (See Also)
+  - Mention added in `guide/core/methodologies.md` (SDD Tools table) and `guide/workflows/spec-first.md` (See Also)
   - Evaluation archived: `docs/resource-evaluations/sylvain-chabaud-spec-to-code-factory.md`
 
 - **New Section 3.5**: Team Configuration at Scale — Profile-Based Module Assembly pattern
@@ -730,8 +948,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- `guide/learning-with-ai.md`: Added Borg et al. 2025 RCT citation in Productivity Research bibliography (revised to factual/neutral wording after technical-writer audit)
-- `guide/learning-with-ai.md`: Added "On maintainability fear" note in "Why Some Teams Get Results" section — the real risks are skill atrophy and over-delegation, not downstream quality degradation
+- `guide/roles/learning-with-ai.md`: Added Borg et al. 2025 RCT citation in Productivity Research bibliography (revised to factual/neutral wording after technical-writer audit)
+- `guide/roles/learning-with-ai.md`: Added "On maintainability fear" note in "Why Some Teams Get Results" section — the real risks are skill atrophy and over-delegation, not downstream quality degradation
 - `guide/ultimate-guide.md`: Added downstream maintainability nuance blockquote in §1.7 Trust Calibration — defect rates ≠ maintenance burden (Borg et al. 2025 blind RCT)
 - `machine-readable/reference.yaml`: Added 4 entries — `productivity_rct_metr`, `productivity_rct_echoes`, `productivity_maintainability_empirical`, `trust_calibration_maintainability_nuance`
 - Landing `faq/index.astro`: Updated "How much should I trust AI-generated code?" — added maintainability nuance (HTML visible answer + JSON-LD structured data)
@@ -783,12 +1001,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `test-review.md`: coverage gaps, test quality, edge cases, failure modes
   - `performance-review.md`: database access, memory, caching, complexity
 
-- **AI Kill Switch & Containment Architecture** (`guide/security-hardening.md` §3.5)
+- **AI Kill Switch & Containment Architecture** (`guide/security/security-hardening.md` §3.5)
   - Three-level kill switch mapped to Claude Code mechanisms (scoped revocation → velocity governor → global hard stop)
   - Ready-to-use `velocity-governor.sh` hook example (rate-limiter for runaway agents)
   - Regulatory context: EU AI Act (Aug 2025), CoSAI AI Incident Response Framework V1.0, governance-containment gap stats
   - Sources: Fortune Dec 2025, CDOTrends Jan 2026, OASIS/CoSAI Nov 2025
-- **AI-specific incident cross-reference** (`guide/devops-sre.md`)
+- **AI-specific incident cross-reference** (`guide/ops/devops-sre.md`)
   - Added pointer from "When NOT to Use Claude" to security-hardening.md for AI incidents (prompt injection, MCP compromise, agent exfiltration)
 
 - **Git Worktree command suite** (`examples/commands/`)
@@ -830,7 +1048,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **Grepai MCP documentation** (`guide/mcp-servers-ecosystem.md`)
+- **Grepai MCP documentation** (`guide/ecosystem/mcp-servers-ecosystem.md`)
   - New "Code Search & Analysis" section (~130 lines): semantic search, call graph tracing, setup guide
   - Privacy: fully local (Ollama + nomic-embed-text), zero data exfiltration
   - Token efficiency comparison: grepai 2-3K tokens vs Grep+Read 15K for same results
@@ -945,7 +1163,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **README**: Commands count updated 18→22, 3 new security commands listed in examples library
 - **CLAUDE.md**: Slash commands table updated with `/security-check`, `/security-audit`, `/update-threat-db`
 - **reference.yaml**: 4 new entries (security_check_command, security_audit_command, security_threat_db, security_update_threat_db)
-- **Learning Guide Enhancement**: AI fatigue symptom recognition integrated into `guide/learning-with-ai.md`
+- **Learning Guide Enhancement**: AI fatigue symptom recognition integrated into `guide/roles/learning-with-ai.md`
   - Red Flags Checklist, Productivity Reality, UVAL Protocol sections updated
 
 ### Fixed
@@ -1001,7 +1219,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Technical challenge by technical-writer agent adjusted score from 2/5 to 3/5
   - All technical claims fact-checked (TypeScript 58.9%, Python 38.5%, stack verified)
 
-- **New Guide Section**: Agent Evaluation (`guide/agent-evaluation.md`, ~3000 tokens)
+- **New Guide Section**: Agent Evaluation (`guide/roles/agent-evaluation.md`, ~3000 tokens)
   - **Why Evaluate Agents**: Quantify quality, compare configurations, build feedback loops
   - **Metrics to Track**: Response quality, tool usage, performance, user satisfaction
   - **Implementation Patterns**: Logging hooks, unit tests, A/B testing, feedback loops
@@ -1010,12 +1228,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Addresses critical gap identified in nao evaluation
   - Navigation: After `guide/ultimate-guide.md` Section 4 (Agents)
 
-- **AI Ecosystem Update**: Section 8.2 Domain-Specific Agent Frameworks (`guide/ai-ecosystem.md`)
+- **AI Ecosystem Update**: Section 8.2 Domain-Specific Agent Frameworks (`guide/ecosystem/ai-ecosystem.md`)
   - New subsection after "Multi-Agent Orchestration Systems"
   - **nao (Analytics Agents)**: Database-agnostic framework with built-in evaluation
   - Transposable patterns: Context builder architecture, evaluation hooks, database integrations
-  - Links to new `guide/agent-evaluation.md` for implementation details
-  - Location: guide/ai-ecosystem.md lines 1612-1638
+  - Links to new `guide/roles/agent-evaluation.md` for implementation details
+  - Location: guide/ecosystem/ai-ecosystem.md lines 1612-1638
 
 - **Template**: Analytics Agent with Evaluation (`examples/agents/analytics-with-eval/`, 5 files)
   - **README.md**: Complete setup, usage, troubleshooting (production-ready)
@@ -1023,7 +1241,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - **hooks/post-response-metrics.sh**: Automated metrics logging (safety, performance, errors)
   - **eval/metrics.sh**: Analysis script for aggregating collected metrics
   - **eval/report-template.md**: Monthly evaluation report template
-  - Demonstrates patterns from `guide/agent-evaluation.md` in complete implementation
+  - Demonstrates patterns from `guide/roles/agent-evaluation.md` in complete implementation
   - Includes safety checks (destructive operations), performance monitoring, feedback loops
 
 ### Changed
@@ -1084,7 +1302,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- **Methodologies**: Added clarification note to BMAD description about role-based naming (guide/methodologies.md line 49)
+- **Methodologies**: Added clarification note to BMAD description about role-based naming (guide/core/methodologies.md line 49)
 
 ## [3.23.3] - 2026-02-09
 
@@ -1206,7 +1424,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Critical sandbox bypass vulnerability patched
   - Recommendation: **Upgrade to v2.1.34+ immediately**
   - Details undisclosed pending broader adoption
-  - Added to CVE Summary table (guide/security-hardening.md)
+  - Added to CVE Summary table (guide/security/security-hardening.md)
 
 ### Documentation
 
@@ -1231,7 +1449,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Performance benchmarks: 50-70% accuracy drop on complex tasks (1K → 32K tokens)
   - Research sources: Context Rot (Chroma), Beyond Prompts (UseAI), Claude Saves Tokens (Golev)
   - Added Lorenz's proactive thresholds: 70% warning, 85% handoff, 95% force handoff
-  - File: `guide/architecture.md` Section 3.2
+  - File: `guide/core/architecture.md` Section 3.2
 - **Context Management**: Added research-backed proactive thresholds
   - Replaced generic "Check context before resuming (>75%)" with specific 70%/85%/95% ladder
   - Added performance degradation warnings with research links
@@ -1394,8 +1612,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
 - **Git MCP Server (Official) Documentation** — Integration of Anthropic's official Git MCP server addressing version control automation gap (~1600 words, scored 5/5 CRITICAL after technical-writer challenge)
-  - **New section: Version Control (Official Servers)** (`guide/mcp-servers-ecosystem.md:102-255`) — Comprehensive documentation covering official Git MCP server (12 tools: git_status, git_log, git_diff, git_commit, git_add, git_reset, git_branch, git_create_branch, git_checkout, git_show, git_diff_unstaged, git_diff_staged), 3 installation methods (uvx one-liner, pip, Docker), multi-repo configuration, advanced log filtering (ISO 8601, relative dates "2 weeks ago", absolute dates), context_lines parameter for token efficiency, IDE integrations (Claude Desktop, VS Code, Zed, Zencoder with one-click install buttons), quality score 8.5/10, limitations & workarounds (early development API changes, no interactive rebase/reflog/bisect)
-  - **Decision Matrix: Git MCP vs GitHub MCP vs Bash Tool** (`guide/mcp-servers-ecosystem.md:212-255`) — Comprehensive comparison table (11 operations: local commits, branch management, diff/log analysis, PR creation, issue management, CI/CD checks, interactive rebase, reflog recovery, git bisect, multi-tool pipelines), decision tree workflow, 7 workflow examples with justifications (feature development, commit history analysis, code review preparation, cleanup commits, recover lost commits, bug hunting, automated release flow)
+  - **New section: Version Control (Official Servers)** (`guide/ecosystem/mcp-servers-ecosystem.md:102-255`) — Comprehensive documentation covering official Git MCP server (12 tools: git_status, git_log, git_diff, git_commit, git_add, git_reset, git_branch, git_create_branch, git_checkout, git_show, git_diff_unstaged, git_diff_staged), 3 installation methods (uvx one-liner, pip, Docker), multi-repo configuration, advanced log filtering (ISO 8601, relative dates "2 weeks ago", absolute dates), context_lines parameter for token efficiency, IDE integrations (Claude Desktop, VS Code, Zed, Zencoder with one-click install buttons), quality score 8.5/10, limitations & workarounds (early development API changes, no interactive rebase/reflog/bisect)
+  - **Decision Matrix: Git MCP vs GitHub MCP vs Bash Tool** (`guide/ecosystem/mcp-servers-ecosystem.md:212-255`) — Comprehensive comparison table (11 operations: local commits, branch management, diff/log analysis, PR creation, issue management, CI/CD checks, interactive rebase, reflog recovery, git bisect, multi-tool pipelines), decision tree workflow, 7 workflow examples with justifications (feature development, commit history analysis, code review preparation, cleanup commits, recover lost commits, bug hunting, automated release flow)
   - **Machine-readable index** (`reference.yaml`, +11 entries) — Added: git_mcp (description), git_mcp_guide (line pointer), git_mcp_tools (12 tools list), git_mcp_install (uvx command), git_mcp_decision_matrix (line pointer), git_mcp_repo (GitHub URL), git_mcp_score (8.5/10), git_mcp_status (early development), git_mcp_advanced_filtering (date formats), git_mcp_use_cases (5 use cases); Updated: reference.yaml updated timestamp (2026-02-03)
   - **Gap filled**: Official Git server documentation — mentioned in official servers table (line 29) but 0% documented → 100% comprehensive with use cases/config/decision matrix; Git vs GitHub vs Bash tool clarity — confusion not addressed → decision tree + comparison table + 7 workflow examples; Multi-repo workflows — not documented → configuration example with multiple instances; Token efficiency strategies — general advice → specific git_diff context_lines parameter, structured output benefits quantified
   - **Impact**: Workflow automation (AI-assisted commits, branch creation, log analysis without Bash tool), Token efficiency (structured output, context_lines control vs parsing text), Cross-platform safety (MCP vs direct Bash Git commands), Multi-tool composition (Git MCP + GitHub MCP pipelines documented), Developer experience (decision tree prevents tool selection confusion)
@@ -1416,9 +1634,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - **Native Sandboxing Comprehensive Documentation** — Integration of official Anthropic sandboxing documentation (v2.1.0+) addressing critical security gap (~1800 words missing content, scored 5/5 CRITICAL)
-  - **New guide: sandbox-native.md** (`guide/sandbox-native.md`, ~3000 lines) — Complete technical reference covering OS primitives (Seatbelt for macOS, bubblewrap for Linux/WSL2), filesystem isolation (read all/write CWD), network isolation (SOCKS5 proxy with domain filtering), sandbox modes (Auto-allow vs Regular permissions), escape hatch (`dangerouslyDisableSandbox`), security limitations (domain fronting, Unix sockets privilege escalation, filesystem permission escalation), open-source runtime (`@anthropic-ai/sandbox-runtime`), platform support (macOS ✅, Linux ✅, WSL2 ✅, WSL1 ❌, Windows planned), decision tree (Native vs Docker vs Cloud), configuration examples (Strict/Balanced/Development), best practices, troubleshooting
-  - **Enhanced: sandbox-isolation.md** (`guide/sandbox-isolation.md`, +800 lines) — Added Section 4 "Native Claude Code Sandbox" with architecture diagram, OS primitives comparison, quick start guide, configuration example, Native vs Docker decision tree, security limitations summary, deep dive reference; Updated TL;DR table (Native CC repositioned #2 with enriched details); Updated Comparison Matrix (Native CC enriched with kernel isolation, overhead, setup details); Sections renumbered (4→5 Cloud Sandboxes, 5→6 Comparison Matrix, 6→7 Safe Autonomy, 7→8 Anti-Patterns)
-  - **Enhanced: architecture.md** (`guide/architecture.md:523`, +80 lines) — Added Section 5.1 "Native Sandbox (v2.1.0+)" in Permission & Security Model with architecture diagram (sandbox wrapper flow), OS primitives table, isolation model (filesystem/network/process), sandbox modes, security trade-offs table (Native vs Docker), security limitations, when-to-use guide, deep dive reference
+  - **New guide: sandbox-native.md** (`guide/security/sandbox-native.md`, ~3000 lines) — Complete technical reference covering OS primitives (Seatbelt for macOS, bubblewrap for Linux/WSL2), filesystem isolation (read all/write CWD), network isolation (SOCKS5 proxy with domain filtering), sandbox modes (Auto-allow vs Regular permissions), escape hatch (`dangerouslyDisableSandbox`), security limitations (domain fronting, Unix sockets privilege escalation, filesystem permission escalation), open-source runtime (`@anthropic-ai/sandbox-runtime`), platform support (macOS ✅, Linux ✅, WSL2 ✅, WSL1 ❌, Windows planned), decision tree (Native vs Docker vs Cloud), configuration examples (Strict/Balanced/Development), best practices, troubleshooting
+  - **Enhanced: sandbox-isolation.md** (`guide/security/sandbox-isolation.md`, +800 lines) — Added Section 4 "Native Claude Code Sandbox" with architecture diagram, OS primitives comparison, quick start guide, configuration example, Native vs Docker decision tree, security limitations summary, deep dive reference; Updated TL;DR table (Native CC repositioned #2 with enriched details); Updated Comparison Matrix (Native CC enriched with kernel isolation, overhead, setup details); Sections renumbered (4→5 Cloud Sandboxes, 5→6 Comparison Matrix, 6→7 Safe Autonomy, 7→8 Anti-Patterns)
+  - **Enhanced: architecture.md** (`guide/core/architecture.md:523`, +80 lines) — Added Section 5.1 "Native Sandbox (v2.1.0+)" in Permission & Security Model with architecture diagram (sandbox wrapper flow), OS primitives table, isolation model (filesystem/network/process), sandbox modes, security trade-offs table (Native vs Docker), security limitations, when-to-use guide, deep dive reference
   - **Resource evaluation** (`docs/resource-evaluations/native-sandbox-official-docs.md`, ~600 lines) — Scored 5/5 (CRITICAL), official Anthropic documentation, gap analysis quantified (~1800 words missing), fact-check 100% (11 claims verified), technical-writer agent challenge (3/5 → 5/5 score revision), risks of non-integration documented (security incidents, adoption friction, configuration errors)
   - **Production templates** (3 files):
     - `examples/config/sandbox-native.json` — Native sandbox configuration (denylist mode, domain allowlist, denied credentials paths, excluded commands)
@@ -1450,13 +1668,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Resource Evaluation: Alan Engineering "Tour Eiffel Paradigm"** (scored 5/5, CRITICAL) — Integration of paradigm shift framework from Alan Engineering team (Charles Gorintin, CTO + Maxime Le Bras, Talent Lead) validating production-scale AI transformation (`docs/resource-evaluations/alan-tour-eiffel-paradigm.md`)
   - **Source**: LinkedIn Newsletter "Intelligence Humaine" (Feb 2, 2026, 3,897 followers), French healthtech company (15K+ companies, 300K+ members, €500M raised, heavily regulated industry)
   - **Key frameworks**: (1) Eiffel Tower Principle — AI tools transform what's architecturally possible (like elevators enabled Eiffel Tower shape), not just acceleration, (2) Ralph Wiggum Programming — agentic loops where engineers become architects/editors, (3) **Verification Paradox** — 99% AI success makes human vigilance fragile for 1% errors, need automated guardrails, (4) Precision as Currency — clear spec definition (WHAT/WHERE/HOW) is new engineer superpower, (5) Ambition Scaling — pursue previously impossible goals enabled by tools
-  - **Production Safety Rule 7** added (`guide/production-safety.md:639-791`): "The Verification Paradox" — when AI reliability crosses 95%, shift from manual review to automated guardrails (tests, types, lints, CI/CD gates). Anti-patterns vs Better Approaches table, 3 implementation options (automated stack, verification contracts, pre-merge checklist), integration with Rules 2/3/6
-  - **Practitioner Insight** added (`guide/ai-ecosystem.md:2133-2168`): Alan Engineering section after Addy Osmani, following existing format (credentials, content summary, alignment table with guide references, production-scale context). Interview mention of Stanislas Polu (Dust co-founder) citing Mirakl achievement (75% employees → agent builders)
+  - **Production Safety Rule 7** added (`guide/security/production-safety.md:639-791`): "The Verification Paradox" — when AI reliability crosses 95%, shift from manual review to automated guardrails (tests, types, lints, CI/CD gates). Anti-patterns vs Better Approaches table, 3 implementation options (automated stack, verification contracts, pre-merge checklist), integration with Rules 2/3/6
+  - **Practitioner Insight** added (`guide/ecosystem/ai-ecosystem.md:2133-2168`): Alan Engineering section after Addy Osmani, following existing format (credentials, content summary, alignment table with guide references, production-scale context). Interview mention of Stanislas Polu (Dust co-founder) citing Mirakl achievement (75% employees → agent builders)
   - **Machine-readable index** updated (`reference.yaml`): Added `practitioner_alan`, `practitioner_alan_source`, `verification_paradox`, `verification_paradox_source` entries
   - **README.md counters harmonized**: Fixed evaluation count inconsistencies (37/35/38 → 41 across 5 locations: line 18 intro, line 74 mermaid diagram, line 118 structure, line 163 features, line 427 details)
   - **Challenge phase**: Technical-writer agent reviewed 6 proposed integrations, rejected 4 (Quick Start paradigm shift, Mental Model refactoring, methodologies.md deep dive, XML Prompting precision) for dilution/duplication concerns, approved 3 (production-safety, ai-ecosystem, reference.yaml)
   - **Language note**: Original article in French, concepts and Henri Bergson quote ("L'intelligence est la faculté de fabriquer des outils à faire des outils") translated for guide
-- **Multi-IDE Configuration Sync Pattern** — Documented strategies for maintaining consistent AI instructions across multiple coding tools (Claude Code, Cursor, Copilot) in `guide/ai-ecosystem.md:1256-1329`
+- **Multi-IDE Configuration Sync Pattern** — Documented strategies for maintaining consistent AI instructions across multiple coding tools (Claude Code, Cursor, Copilot) in `guide/ecosystem/ai-ecosystem.md:1256-1329`
   - **Problem statement**: Table comparing config files (CLAUDE.md, .cursorrules, AGENTS.md, .github/copilot-instructions.md) — without sync, each drifts independently causing inconsistent AI behavior
   - **Solution 1**: Native @import (recommended for Claude Code solo usage) — no build step, maintained by Anthropic, but Cursor doesn't support it
   - **Solution 2**: Script-based generation for multi-IDE teams — source of truth in `docs/ai-instructions/` compiled into tool-specific configs via bash/node sync scripts
@@ -1466,7 +1684,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Resource Evaluation: Addy Osmani LinkedIn Post** (scored 2/5, Marginal - Tracking mention only) — Post about Anthropic study (17% comprehension gap) evaluated but not integrated due to 100% overlap with primary source already documented (`docs/resource-evaluations/addy-osmani-linkedin-anthropic-study.md`)
   - **Content**: LinkedIn post (Feb 1, 2026, 246K reach) citing Shen & Tamkin 2026 study on AI-assisted learning
   - **Key claims verified**: 17% comprehension gap, 2-minute productivity gain, "thinking partner vs code vending machine" framing
-  - **Overlap**: 100% with arXiv:2601.20245 already cited 3× in `guide/learning-with-ai.md` (lines 114, 868, 890)
+  - **Overlap**: 100% with arXiv:2601.20245 already cited 3× in `guide/roles/learning-with-ai.md` (lines 114, 868, 890)
   - **Decision**: Minimal integration (1-2 line tracking mention) to document mainstream diffusion timeline without content duplication
   - **Challenge phase**: Technical-writer agent confirmed score 2/5 content but noted 3/5 ecosystem context (authority messager + diffusion milestone)
   - **New criterion documented**: "Influencer Amplification" pattern for future evaluations (reach >100K + timeline awareness)
@@ -1509,7 +1727,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Reference Index**: 8 new entries in `machine-readable/reference.yaml` (spec_first_workflow, spec_modular_design, spec_operational_boundaries, spec_command_template, spec_anti_monolithic, spec_osmani_source, spec_osmani_evaluation, spec_osmani_score)
 - **README.md**: Incremented resource evaluations count (35 → 36 assessments)
 - **Fresh Context Pattern**: New "Session-per-Concern Pipeline" variant — dedicates a fresh session to each quality dimension (plan → test → implement → security review → perf → code review) instead of looping the same task. References OpusPlan and TDD. (`guide/ultimate-guide.md:1595`)
-- **Resource Evaluation #19: dclaude** (Patrick Debois) — Dockerized Claude Code wrapper evaluated at 2/5 (Marginal). Fills a narrow gap (Linux + Docker Engine without Docker Desktop) but uses standard containers with host Docker socket mount — weaker isolation than Docker Sandboxes' microVMs. Footnote added in `guide/sandbox-isolation.md` Limitations subsection. (`docs/resource-evaluations/dclaude-docker-wrapper.md`)
+- **Resource Evaluation #19: dclaude** (Patrick Debois) — Dockerized Claude Code wrapper evaluated at 2/5 (Marginal). Fills a narrow gap (Linux + Docker Engine without Docker Desktop) but uses standard containers with host Docker socket mount — weaker isolation than Docker Sandboxes' microVMs. Footnote added in `guide/security/sandbox-isolation.md` Limitations subsection. (`docs/resource-evaluations/dclaude-docker-wrapper.md`)
 - **Resource Evaluation #20: 10 Tips from Inside the Claude Code Team** (paddo.dev / Boris Cherny thread) — Scored 4/5 (High Value). 4 integrations in ultimate-guide.md:
   - **Prompting as Provocation** (section 2.6.1): 3 challenge patterns — Gatekeeper, Proof Demand, Reset — treating Claude as a peer to convince rather than an assistant to direct (`guide/ultimate-guide.md:3029`)
   - **Model-as-Security-Gate** hook pattern: Route permission requests to Opus 4.5 via PreToolUse hook for intelligent security screening beyond static rules (`guide/ultimate-guide.md:6907`)
@@ -1523,9 +1741,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **agentskills.io Open Standard integration** (scored 4/5) — Agent Skills follow the [agentskills.io](https://agentskills.io) specification, created by Anthropic, supported by 26+ platforms (Cursor, VS Code, GitHub, Codex, Gemini CLI, Goose, Roo Code, etc.)
   - SKILL.md frontmatter table now distinguishes spec fields (`name`, `description`, `allowed-tools`, `license`, `compatibility`, `metadata`) from Claude Code-only extensions (`context`, `agent`) (`guide/ultimate-guide.md:5180`)
   - `skills-ref validate` / `skills-ref to-prompt` CLI tool added to skill creation workflow (`guide/ultimate-guide.md:5188`)
-  - Skill Portability section in Goose comparison (`guide/ai-ecosystem.md:1876`)
+  - Skill Portability section in Goose comparison (`guide/ecosystem/ai-ecosystem.md:1876`)
   - 16 new reference.yaml entries (spec, CLI, anthropics/skills repo, SafeDep threat model, blog)
-- **Agent Skills Supply Chain Risks** — New section 1.2 in security-hardening.md based on SafeDep threat model (8-14% of public skills have vulnerabilities). 4 mitigations: review SKILL.md, validate with skills-ref, pin versions, audit scripts/ (`guide/security-hardening.md:121`)
+- **Agent Skills Supply Chain Risks** — New section 1.2 in security-hardening.md based on SafeDep threat model (8-14% of public skills have vulnerabilities). 4 mitigations: review SKILL.md, validate with skills-ref, pin versions, audit scripts/ (`guide/security/security-hardening.md:121`)
 - **anthropics/skills** (60K+⭐) added to README Complementary Resources table
 - **Resource Evaluations**: Skill Doctor GitHub Action (2/5, marginal), agentskills.io specification (4/5, high value) (`docs/resource-evaluations/skill-doctor-github-action.md`, `docs/resource-evaluations/agentskills-io-specification.md`)
 
@@ -1611,7 +1829,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-- **Sandbox Isolation for Coding Agents** — `guide/sandbox-isolation.md` (NEW), `machine-readable/reference.yaml`, `guide/ultimate-guide.md`
+- **Sandbox Isolation for Coding Agents** — `guide/security/sandbox-isolation.md` (NEW), `machine-readable/reference.yaml`, `guide/ultimate-guide.md`
   - Score: 4/5 (High Value — official Docker docs + verified vendor documentation)
   - Source: [docs.docker.com/ai/sandboxes/](https://docs.docker.com/ai/sandboxes/) (Docker Desktop 4.58+, Jan 2026)
   - New guide file: Docker Sandboxes (microVM isolation, network policies, custom templates, supported agents)
@@ -1623,7 +1841,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 18 new `sandbox_*` entries in reference.yaml
   - Evaluation: `docs/resource-evaluations/docker-sandboxes-isolation.md`
 
-- **Claude Code releases tracking: v2.1.27** — `machine-readable/claude-code-releases.yaml`, `guide/claude-code-releases.md`
+- **Claude Code releases tracking: v2.1.27** — `machine-readable/claude-code-releases.yaml`, `guide/core/claude-code-releases.md`
   - `--from-pr` flag to resume sessions linked to GitHub PR number/URL
   - Sessions auto-linked to PRs when created via `gh pr create`
   - Context management fixes for Bedrock/Vertex gateway users
@@ -1638,7 +1856,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - ROI cross-reference added in cost optimization section
   - Evaluation: `docs/resource-evaluations/026-contribution-metrics-blog.md`
 
-- **Learning guide: Shen & Tamkin RCT integration** — `guide/learning-with-ai.md`
+- **Learning guide: Shen & Tamkin RCT integration** — `guide/roles/learning-with-ai.md`
   - Source: [arXiv:2601.20245](https://arxiv.org/abs/2601.20245) (Shen & Tamkin, Anthropic Fellows, Jan 2026)
   - Score: 3/5 (Relevant - Useful complement, high overlap with existing content)
   - Added RCT data point in §3 "Reality of AI Productivity": 17% skill reduction (n=52, Cohen's d=0.738, p=0.01), no significant speed gain, only ~20% delegation users finished faster
@@ -1737,14 +1955,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - **Practitioner Insight: Addy Osmani (Google Chrome Team)** — Added to AI Ecosystem Practitioner Insights
-  - **New entry**: `guide/ai-ecosystem.md` line ~2024 "Addy Osmani (Google Chrome Team)" (~32 lines)
+  - **New entry**: `guide/ecosystem/ai-ecosystem.md` line ~2024 "Addy Osmani (Google Chrome Team)" (~32 lines)
     - "The 80% Problem in Agentic Coding" synthesis (January 28, 2026)
     - Three new failure modes: overengineering, assumption propagation, sycophantic agreement
     - Comprehension debt concept (distinct from technical debt)
     - Productivity paradox data: +98% PRs, +91% review time, no workload reduction
     - Alignment table mapping Osmani concepts to existing guide sections
   - **Reference updates**: `machine-readable/reference.yaml` — 4 new entries
-    - `practitioner_addy_osmani: "guide/ai-ecosystem.md:2024"`
+    - `practitioner_addy_osmani: "guide/ecosystem/ai-ecosystem.md:2024"`
     - `practitioner_osmani_source: "https://addyo.substack.com/p/the-80-problem-in-agentic-coding"`
     - `eighty_percent_problem`, `comprehension_debt_secondary`
   - **Resource evaluation**: `docs/resource-evaluations/024-addy-osmani-80-percent-problem.md`
@@ -1793,7 +2011,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - **Practitioner Insights** — Peter Steinberger (PSPDFKit Founder, Moltbot Creator)
-  - Added new practitioner insight in `guide/ai-ecosystem.md` documenting model-agnostic workflow patterns
+  - Added new practitioner insight in `guide/ecosystem/ai-ecosystem.md` documenting model-agnostic workflow patterns
   - **Patterns documented**: Stream monitoring, multi-project juggling (3-8 concurrent projects), fresh context validation, iterative exploration
   - **Source**: [Shipping at Inference-Speed](https://steipete.me/posts/2025/shipping-at-inference-speed) (Dec 2025 blog post)
   - **Evaluation**: Score 3/5 (Relevant - Useful complement)
@@ -1804,7 +2022,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - **Scope**: Model-agnostic patterns only, zero model comparisons (Codex/Opus excluded as per evaluation decision)
   - **Note**: Patterns originate from non-Claude workflow (Moltbot/GPT-5.2); validation in Claude Code context recommended
   - **Files modified**:
-    - `guide/ai-ecosystem.md`: New entry after Matteo Collina (~26 lines, H3 format with alignment table)
+    - `guide/ecosystem/ai-ecosystem.md`: New entry after Matteo Collina (~26 lines, H3 format with alignment table)
     - `docs/resource-evaluations/steinberger-inference-speed.md`: Complete evaluation with challenge agent review
     - `docs/resource-evaluations/README.md`: Index updated (15→16 evaluations)
     - `machine-readable/reference.yaml`: Added `practitioner_steinberger` references (line 1997)
@@ -1818,14 +2036,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - **v2.1.23** (2026-01-29): Customizable spinner verbs, mTLS/proxy fixes, terminal performance improvements
   - **Files updated**:
     - `machine-readable/claude-code-releases.yaml`: Updated latest version, added 2 new releases
-    - `guide/claude-code-releases.md`: Synchronized with YAML, added detailed release notes
+    - `guide/core/claude-code-releases.md`: Synchronized with YAML, added detailed release notes
   - **Landing sync**: Updated Claude Code version badge v2.1.22 → v2.1.25
 
 ## [3.18.0] - 2026-01-28
 
 ### Added
 
-- **MCP Servers Ecosystem Documentation** — New `guide/mcp-servers-ecosystem.md` (893 lines) documenting validated community MCP servers
+- **MCP Servers Ecosystem Documentation** — New `guide/ecosystem/mcp-servers-ecosystem.md` (893 lines) documenting validated community MCP servers
   - **8 validated production-ready servers**:
     - **Playwright MCP** (Microsoft): Browser automation with accessibility trees (Quality: 8.8/10)
     - **Semgrep MCP** (Semgrep Inc.): Security scanning SAST/secrets/supply chain (Quality: 9.0/10)
@@ -1849,7 +2067,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **Known Issues Tracker** — New `guide/known-issues.md` (285 lines) documenting verified critical bugs
+- **Known Issues Tracker** — New `guide/core/known-issues.md` (285 lines) documenting verified critical bugs
   - **GitHub Issue Auto-Creation Bug**: Verified Issue #13797 (Dec 2025), 17+ confirmed accidental public disclosures
     - Security/privacy risk: Private project details exposed in public anthropics/claude-code repo
     - Affected versions: v2.0.65+
@@ -2029,8 +2247,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Tasks API (v2.1.16+): Official, public, documented in CHANGELOG
     - CLAUDE_CODE_ENABLE_TASKS: Migration flag (revert to old system), not activation flag
     - No "hidden features": All public features documented in official CHANGELOG
-- **MCP Apps (SEP-1865) Documentation** (`guide/architecture.md`, `guide/ultimate-guide.md`, `machine-readable/reference.yaml`)
-  - **guide/architecture.md:656**: New section "MCP Extensions: Apps (SEP-1865)" (~150 lines)
+- **MCP Apps (SEP-1865) Documentation** (`guide/core/architecture.md`, `guide/ultimate-guide.md`, `machine-readable/reference.yaml`)
+  - **guide/core/architecture.md:656**: New section "MCP Extensions: Apps (SEP-1865)" (~150 lines)
     - Technical architecture (2 primitives: tools with UI metadata + UI resources via `ui://` scheme)
     - Communication flow diagram (MCP Client → Server → Sandboxed Iframe)
     - Multi-layered security model (sandbox, pre-declared templates, auditable JSON-RPC, user consent, content blocking)
@@ -2095,7 +2313,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **NotebookLM MCP Integration Documentation** (`guide/ai-ecosystem.md`, `guide/ultimate-guide.md`)
+- **NotebookLM MCP Integration Documentation** (`guide/ecosystem/ai-ecosystem.md`, `guide/ultimate-guide.md`)
   - **§ 4.1 NotebookLM MCP Integration** (~240 lines): Complete installation and usage guide
     - Detailed tool breakdown table: 16 tools across 3 profiles (minimal/standard/full)
     - Multi-account authentication workflow (authuser parameter for secondary Google accounts)
@@ -2153,7 +2371,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- **guide/methodologies.md:55**: Corrected GSD evaluation link
+- **guide/core/methodologies.md:55**: Corrected GSD evaluation link
   - Old: `../claudedocs/resource-evaluations/gsd-evaluation.md` (private)
   - New: `../docs/resource-evaluations/gsd-evaluation.md` (public)
 - **machine-readable/reference.yaml**: Added resource evaluations metadata
@@ -2181,14 +2399,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Boris's practical example: 2.5K tokens grown over months
     - Anti-pattern warning: no preemptive documentation
     - Mental model shift: configuration file → organizational learning system
-  - **Plan-First Discipline** (`guide/methodologies.md:61`)
+  - **Plan-First Discipline** (`guide/core/methodologies.md:61`)
     - New "Foundational Discipline" section (between Tier 1 and Tier 2)
     - Core principle: "Once the plan is good, the code is good" (Boris quote)
     - Decision table: when to plan first vs when to skip
     - 3-phase workflow: exploration → validation → execution
     - Benefits quantified vs "just start coding"
     - CLAUDE.md integration example for team planning policy
-  - **Verification Loops architectural pattern** (`guide/methodologies.md:214`)
+  - **Verification Loops architectural pattern** (`guide/core/methodologies.md:214`)
     - Extended beyond TDD to general architectural principle
     - 8 verification domains table (frontend, backend, types, style, performance, accessibility, security, UX)
     - Boris quote: "An agent that can 'see' what it has done produces better results"
@@ -2220,7 +2438,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Resource evaluation saved in `claudedocs/resource-evaluations/worktrunk-evaluation.md` (score: 3/5 - relevant, useful complement)
   - Total additions: ~260 lines (121 original + 139 self-assessment)
 - **machine-readable/reference.yaml**: Added `advanced_worktree_tooling: 10748`, `worktree_tooling_self_assessment: 10762`, and updated line references for all sections after worktrees
-- **GSD (Get Shit Done) methodology mention** (`guide/methodologies.md:47-55`)
+- **GSD (Get Shit Done) methodology mention** (`guide/core/methodologies.md:47-55`)
   - Added to Tier 1: Strategic Orchestration alongside BMAD
   - Meta-prompting 6-phase workflow (Initialize → Discuss → Plan → Execute → Verify → Complete)
   - Fresh 200k-token contexts per task to avoid context rot
@@ -2232,7 +2450,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Updated final note with adoption metrics and real-world use case examples
   - Link to comprehensive community analysis: https://docs.google.com/document/d/1Mz4xt1yAqb2gDxjr0Vs_YOu9EeO-6JYQMSx4WWI8KUA/preview
   - Resource evaluation saved in `claudedocs/resource-evaluations/2026-01-25-clawdbot-twitter-analysis.md` (score: 2/5 - marginal, partial integration)
-- **MCP architecture visual diagram** (`guide/architecture.md:513`, SVG)
+- **MCP architecture visual diagram** (`guide/core/architecture.md:513`, SVG)
   - 7-layer security model showing LLM/MCP Server/Tools separation
   - Visual representation of "No Data Access" (LLM layer) and "Hidden From AI" (Real Systems layer)
   - Beginner-friendly introduction to MCP architecture with color-coded security boundaries
@@ -2272,7 +2490,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **External orchestration systems documentation** (`guide/ai-ecosystem.md:808`)
+- **External orchestration systems documentation** (`guide/ecosystem/ai-ecosystem.md:808`)
   - Gas Town (Steve Yegge): Multi-agent workspace manager using Claude Code instances
   - multiclaude (dlorenc): Self-hosted multi-agent Claude Code spawner (383 stars, active development)
   - agent-chat (Justin Abrahms): Real-time monitoring UI for orchestrator communications (v0.2.0)
@@ -2282,7 +2500,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **machine-readable/reference.yaml**: Added `external_orchestrators` section with structured data
   - Programmatic access to Gas Town, multiclaude, agent-chat metadata
   - Links to guide sections, GitHub repos, author attribution
-- **guide/observability.md:117**: Cross-reference to multi-agent orchestration monitoring
+- **guide/ops/observability.md:117**: Cross-reference to multi-agent orchestration monitoring
   - Architecture pattern for custom implementations (hooks + SQLite + SSE)
   - Comparison table: external orchestrator monitoring vs native Claude Code monitoring
 
@@ -2300,7 +2518,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Cross-references to §2.2 (Fresh Context Pattern, line 1525), §2.3 (Plan Mode, line 2100)
   - Total additions: ~60 lines
 - **machine-readable/reference.yaml**: Added `vibe_coding_context_overload`, `vibe_coding_context_overload_source`, `vibe_coding_phased_strategy`
-- **guide/learning-with-ai.md:96**: Added cross-reference from "Vibe Coding Trap" to new anti-pattern section
+- **guide/roles/learning-with-ai.md:96**: Added cross-reference from "Vibe Coding Trap" to new anti-pattern section
 
 - **Product Manager FAQ entry** (`guide/ultimate-guide.md:14335`)
   - Minimal FAQ entry (28 lines) addressing PM workflows with Claude Code
@@ -2313,14 +2531,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Decision: Minimal integration (proportional to source), invite community contribution
   - Reference YAML: Added `faq_product_managers: 14335`
 
-- **MCP architecture visual diagram** (`guide/architecture.md:513`, SVG)
+- **MCP architecture visual diagram** (`guide/core/architecture.md:513`, SVG)
   - 7-layer security model showing LLM/MCP Server/Tools separation
   - Visual representation of "No Data Access" (LLM layer) and "Hidden From AI" (Real Systems layer)
   - Beginner-friendly introduction to MCP architecture with color-coded security boundaries
   - Design inspired by Dinesh Kumar's LinkedIn visualization, recreated as original work under Apache-2.0
   - Includes workflow diagram (5 steps: User Asks → LLM Thinks → MCP Controls → Tools Execute → Safe Result)
   - Golden rule banner: "LLM Thinks → MCP Controls → Tools Execute → Data Locked"
-- **External orchestration systems documentation** (`guide/ai-ecosystem.md:808`)
+- **External orchestration systems documentation** (`guide/ecosystem/ai-ecosystem.md:808`)
   - Gas Town (Steve Yegge): Multi-agent workspace manager using Claude Code instances
   - multiclaude (dlorenc): Self-hosted multi-agent Claude Code spawner
   - agent-chat (Justin Abrahms): Real-time monitoring UI for orchestrator communications
@@ -2328,7 +2546,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Security and cost warnings for experimental orchestration systems
 - **machine-readable/reference.yaml**: Added `external_orchestrators` section with Gas Town, multiclaude, agent-chat
 - **machine-readable/reference.yaml**: Added `architecture_mcp_visual` (SVG diagram reference)
-- **guide/observability.md**: Cross-reference to multi-agent orchestration monitoring
+- **guide/ops/observability.md**: Cross-reference to multi-agent orchestration monitoring
 
 ## [3.11.7] - 2026-01-25
 
@@ -2345,7 +2563,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Related: ClawdBot is self-hosted chatbot for messaging apps (personal automation, smart home); Claude Code is CLI for developers (terminal/IDE, code generation)
   - Total additions: +76 lines in guide, +3 lines in reference.yaml
 
-- **Architecture Diagrams as Context (Advanced Pattern)** (`guide/ai-ecosystem.md:1379`)
+- **Architecture Diagrams as Context (Advanced Pattern)** (`guide/ecosystem/ai-ecosystem.md:1379`)
   - Pattern documentation for using architecture diagrams in OOP codebases
   - MCP tools reference: Archy MCP, Mermaid MCP, Blueprint MCP (ArcadeAI)
   - ACM 2024 research validation for LLM OOP limitations
@@ -2354,7 +2572,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Source: [LinkedIn discussion (Jan 2026)](https://www.linkedin.com/posts/tigraff_uml-claude-wibecoding-activity-7420595633826258944-gGO5)
   - Evaluation report: `claudedocs/resource-evaluations/uml-oop-diagrams-eval.md`
 
-- **AI Traceability & Attribution Guide** (`guide/ai-traceability.md`)
+- **AI Traceability & Attribution Guide** (`guide/ops/ai-traceability.md`)
   - Comprehensive documentation on AI code attribution and disclosure (~500 lines)
   - LLVM "Human-in-the-Loop" policy (January 2026): `Assisted-by:` trailer standard
   - Ghostty mandatory disclosure pattern (August 2025)
@@ -2373,15 +2591,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Cross-references added**
   - `guide/ultimate-guide.md:9256`: Link to AI Traceability Guide after Co-Authored-By section
-  - `guide/learning-with-ai.md:85`: Related note after Vibe Coding Trap
-  - `guide/security-hardening.md:476`: PromptPwnd reference in See Also
+  - `guide/roles/learning-with-ai.md:85`: Related note after Vibe Coding Trap
+  - `guide/security/security-hardening.md:476`: PromptPwnd reference in See Also
   - `guide/README.md`: New entry in contents table
 
 - **Reference YAML expansion** (`machine-readable/reference.yaml`)
   - 14 new entries for AI traceability topics
   - Template locations for disclosure files
 
-- **Architecture Diagrams as Context (Advanced Pattern)** (`guide/ai-ecosystem.md:1379`)
+- **Architecture Diagrams as Context (Advanced Pattern)** (`guide/ecosystem/ai-ecosystem.md:1379`)
   - Pattern documentation for using architecture diagrams in OOP codebases
   - MCP tools reference: Archy MCP, Mermaid MCP, Blueprint MCP (ArcadeAI)
   - ACM 2024 research validation for LLM OOP limitations
@@ -2448,7 +2666,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `plugins_marketplace: 6890` (marketplace management reference)
   - `plugins_recommended: "examples/plugins/"` (new directory)
   - `plugins_se_cove: "examples/plugins/se-cove.md"`
-  - `chain_of_verification: "guide/methodologies.md:165"` (methodology reference)
+  - `chain_of_verification: "guide/core/methodologies.md:165"` (methodology reference)
   - `chain_of_verification_paper: "https://arxiv.org/abs/2309.11495"`
   - `chain_of_verification_acl: "https://aclanthology.org/2024.findings-acl.212/"`
 
@@ -2513,7 +2731,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **skills.sh marketplace documentation** (`guide/ultimate-guide.md:5172`, `guide/ai-ecosystem.md:1284`)
+- **skills.sh marketplace documentation** (`guide/ultimate-guide.md:5172`, `guide/ecosystem/ai-ecosystem.md:1284`)
   - New subsection in Section 5.5: "Skills Marketplace: skills.sh"
   - Vercel Labs project (launched Jan 21, 2026): centralized skill discovery + one-command install
   - 200+ skills, leaderboard with 35K+ installs (vercel-react-best-practices top skill)
@@ -2523,7 +2741,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Top skills by category: Frontend (vercel-react, web-design), Database (supabase-postgres), Auth (better-auth), Testing (TDD)
   - Status documented: Community project (Vercel Labs, not official Anthropic), early stage
   - Trade-offs: Centralized discovery vs GitHub distribution, multi-agent focus vs Claude Code specific
-  - Cross-reference added to `guide/ai-ecosystem.md` Section 11.3 (Skills Distribution Platforms)
+  - Cross-reference added to `guide/ecosystem/ai-ecosystem.md` Section 11.3 (Skills Distribution Platforms)
   - Complementary resources table updated in README.md
   - YAML index entries:
     - `skills_marketplace: 5172`
@@ -2537,16 +2755,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **Matteo Collina practitioner insight** (`guide/ai-ecosystem.md:1243`)
+- **Matteo Collina practitioner insight** (`guide/ecosystem/ai-ecosystem.md:1243`)
   - Node.js TSC Chair's perspective on AI-assisted development
   - "Bottleneck shift" thesis: judgment becomes the limiting factor, not typing speed
   - Key quote: "The human in the loop isn't a limitation. It's the point."
   - Context: Response to Arnaldi's "The Death of Software Development" (January 2026)
   - Data points: Review time +91% (CodeRabbit), 96% devs don't trust AI code (Sonar 2026)
-  - Cross-reference added to `guide/learning-with-ai.md` Practitioner Perspectives
+  - Cross-reference added to `guide/roles/learning-with-ai.md` Practitioner Perspectives
   - YAML index entries: `practitioner_matteo_collina`, `practitioner_collina_source`
 
-- **Claude Code releases tracking update** (`machine-readable/claude-code-releases.yaml`, `guide/claude-code-releases.md`)
+- **Claude Code releases tracking update** (`machine-readable/claude-code-releases.yaml`, `guide/core/claude-code-releases.md`)
   - Added v2.1.17: Fix for crashes on processors without AVX instruction support
   - Added v2.1.16: ⭐ New task management system with dependency tracking, VSCode native plugin management, OAuth remote session browsing
   - Added v2.1.15: npm installations deprecated (migrate to native installer), React Compiler performance improvements
@@ -2563,12 +2781,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **Verification Loops pattern** (`guide/methodologies.md:145`)
+- **Verification Loops pattern** (`guide/core/methodologies.md:145`)
   - Formalized pattern for autonomous iteration with tests as termination condition
   - Official Anthropic guidance: "Tell Claude to keep going until all tests pass"
   - Implementation options: Stop hooks, multi-Claude verification, explicit "DONE" markers
 
-- **Eval Harness documentation** (`guide/methodologies.md:161`)
+- **Eval Harness documentation** (`guide/core/methodologies.md:161`)
   - Definition: Infrastructure running evaluations end-to-end
   - Link to Anthropic source: "Demystifying Evals for AI Agents"
 
@@ -2581,9 +2799,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Caveats documented: hackathon win was indirect, Node.js hooks not officially recommended
 
 - **deep_dive index entries** (`machine-readable/reference.yaml`)
-  - `verification_loops`: guide/methodologies.md:145
+  - `verification_loops`: guide/core/methodologies.md:145
   - `verification_loops_source`: Anthropic Best Practices link
-  - `eval_harness`: guide/methodologies.md:161
+  - `eval_harness`: guide/core/methodologies.md:161
   - `eval_harness_source`: Demystifying Evals link
 
 - **Subscription Token Limits documentation** (`guide/ultimate-guide.md:1933-1995`)
@@ -2594,7 +2812,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Historical note on October 2025 undocumented limit reductions
   - **Sources**: Perplexity research (Jan 2026), Anthropic support docs, Reddit/GitHub community reports
 
-- **Goose comparison section** (`guide/ai-ecosystem.md:1116-1204`)
+- **Goose comparison section** (`guide/ecosystem/ai-ecosystem.md:1116-1204`)
   - New section "11.1 Goose: Open-Source Alternative (Block)"
   - Technical comparison table: Claude Code vs Goose on 7 criteria
   - GitHub stats: 15,400+ stars, 350+ contributors, Apache 2.0 license
@@ -2607,10 +2825,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `subscription_token_budgets: 1948`
   - `subscription_opus_ratio: 1946`
   - `subscription_monitoring: 1985`
-  - `ai_ecosystem_goose: "guide/ai-ecosystem.md:1116"`
-  - `ai_ecosystem_goose_comparison: "guide/ai-ecosystem.md:1132"`
+  - `ai_ecosystem_goose: "guide/ecosystem/ai-ecosystem.md:1116"`
+  - `ai_ecosystem_goose_comparison: "guide/ecosystem/ai-ecosystem.md:1132"`
 
-- **Practitioner Insights section** (`guide/ai-ecosystem.md:1209-1241`)
+- **Practitioner Insights section** (`guide/ecosystem/ai-ecosystem.md:1209-1241`)
   - New section "11.2 Practitioner Insights" for external validation
   - Dave Van Veen (PhD Stanford, Principal AI Scientist @ HOPPR)
   - Validates guide patterns: TDD, git worktrees, manual commits, planning phase
@@ -2619,11 +2837,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Updated Table of Contents with new section
 
 - **machine-readable/reference.yaml**: Practitioner insights entries
-  - `practitioner_insights: "guide/ai-ecosystem.md:1209"`
-  - `practitioner_dave_van_veen: "guide/ai-ecosystem.md:1213"`
+  - `practitioner_insights: "guide/ecosystem/ai-ecosystem.md:1209"`
+  - `practitioner_dave_van_veen: "guide/ecosystem/ai-ecosystem.md:1213"`
   - `ecosystem.practitioner_insights.dave_van_veen` with full metadata
 
-- **OCTO Technology reference** (`guide/learning-with-ai.md:907`)
+- **OCTO Technology reference** (`guide/roles/learning-with-ai.md:907`)
   - Added to "Practitioner Perspectives" section in Sources & Research
   - Article: "Le développement logiciel à l'ère des agents IA"
   - Key insights: pairs as minimal team unit (bus factor), bottleneck shifts to functional requirements
@@ -2649,17 +2867,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **Context Packing Tools section** (`guide/ai-ecosystem.md:1114`)
+- **Context Packing Tools section** (`guide/ecosystem/ai-ecosystem.md:1114`)
   - New section "12. Context Packing Tools" documenting gitingest, repo2txt usage patterns
   - Clarifies when to use external context extraction vs native Claude Code file access
   - Updated Table of Contents with sections 11 (AI Coding Agents Matrix) and 12
   - **machine-readable/reference.yaml**: Added `ai_ecosystem_context_packing` entry
 
-- **Addy Osmani AI Coding Workflow reference** (`guide/methodologies.md:313`)
+- **Addy Osmani AI Coding Workflow reference** (`guide/core/methodologies.md:313`)
   - Added "My AI Coding Workflow in 2026" article to SDD & Spec-First sources
   - Validates spec-first, TDD, git checkpoints workflow patterns
 
-- **MCP Tool Search documentation** (`guide/architecture.md`)
+- **MCP Tool Search documentation** (`guide/core/architecture.md`)
   - New section "MCP Tool Search (Lazy Loading)" with complete technical details
   - Explains how Claude Code uses Anthropic's Advanced Tool Use API feature (v2.1.7+)
   - Includes ASCII diagram of Tool Search flow
@@ -2671,7 +2889,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- **Release notes enrichment** (`guide/claude-code-releases.md`)
+- **Release notes enrichment** (`guide/core/claude-code-releases.md`)
   - v2.1.7: Added 85% token reduction stats, accuracy improvements, Anthropic blog link
   - v2.1.9: Added `auto:N` configuration examples and cross-reference to architecture.md
 
@@ -2700,7 +2918,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Mute hierarchy system (project override → project mute → global mute)
     - Provider auto-detection (macOS Say, Piper TTS)
     - Audio effects pipeline (reverb, echo, background music)
-  - **Documentation**: Added section 5.1 "Text-to-Speech Tools" in `guide/ai-ecosystem.md` (80+ lines with tables, quick start, recommendations)
+  - **Documentation**: Added section 5.1 "Text-to-Speech Tools" in `guide/ecosystem/ai-ecosystem.md` (80+ lines with tables, quick start, recommendations)
 
 ### Changed
 
@@ -2801,7 +3019,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.9.11] - 2026-01-21
 
 ### Added
-- **Production Safety Rules Guide** (`guide/production-safety.md`): Comprehensive production safety rules for teams deploying Claude Code in production environments
+- **Production Safety Rules Guide** (`guide/security/production-safety.md`): Comprehensive production safety rules for teams deploying Claude Code in production environments
   - Port Stability: Prevent accidental port changes breaking local dev/Docker/deployed configs
   - Database Safety: Backup enforcement via PreToolUse hooks to prevent data loss
   - Feature Completeness: No TODOs for core functionality rules
@@ -2868,7 +3086,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - **DevOps & SRE Guide** — Comprehensive infrastructure diagnosis guide (~900 lines)
-  - **New file**: `guide/devops-sre.md` — The FIRE Framework for infrastructure troubleshooting
+  - **New file**: `guide/ops/devops-sre.md` — The FIRE Framework for infrastructure troubleshooting
     - **F**irst Response → **I**nvestigate → **R**emediate → **E**valuate
     - Kubernetes troubleshooting with copy-paste prompts by symptom (CrashLoopBackOff, OOMKilled, ImagePullBackOff, etc.)
     - Solo incident response workflow (designed for 3 AM scenarios)
@@ -2897,7 +3115,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - **AI Ecosystem: AI Coding Agents Matrix integration** — Comprehensive ecosystem resource
-  - **New Section 11** in `guide/ai-ecosystem.md` (~60 lines): "AI Coding Agents Matrix"
+  - **New Section 11** in `guide/ecosystem/ai-ecosystem.md` (~60 lines): "AI Coding Agents Matrix"
     - Interactive comparison of 23 AI coding agents across 11 technical criteria
     - What Is It, Why It's Useful, Complementarity table, Interactive Features, Limitations
     - Positioning: Discovery (Matrix) → Mastery (This Guide)
@@ -3035,7 +3253,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Developer ↔ Non-Developer workflow patterns
     - Known issues & troubleshooting
     - Availability & roadmap
-  - `guide/ai-ecosystem.md` Section 9 (~90 lines) — Condensed integration guide
+  - `guide/ecosystem/ai-ecosystem.md` Section 9 (~90 lines) — Condensed integration guide
     - Quick comparison table
     - When to use what decision flow
     - Security considerations summary
@@ -3051,7 +3269,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **Alternative Providers section** in `guide/ai-ecosystem.md` (~55 lines)
+- **Alternative Providers section** in `guide/ecosystem/ai-ecosystem.md` (~55 lines)
   - Documents existence of community workarounds (ANTHROPIC_BASE_URL, etc.)
   - Clear disclaimer: not tested, not recommended, not supported
   - Reasons to avoid: feature degradation, ToS risks, no support
@@ -3070,7 +3288,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - 11.2 Tool Matrix — Decision guide for when to use which tool
     - 11.3 Practical Workflows — 4 pipelines (Research→Code, Visual→Code, Documentation, Presentation)
     - 11.4 Integration Patterns — Full workflows with budget recommendations
-  - `guide/ai-ecosystem.md` (NEW, ~750 lines)
+  - `guide/ecosystem/ai-ecosystem.md` (NEW, ~750 lines)
     - Detailed guide for each complementary tool
     - Perplexity AI (research with verified sources)
     - Google Gemini (image understanding → code)
@@ -3170,7 +3388,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - When to use each type with decision criteria
   - Combination patterns for complex workflows
 
-- **Learning with AI guide** for junior developers (`guide/learning-with-ai.md`, ~900 lines)
+- **Learning with AI guide** for junior developers (`guide/roles/learning-with-ai.md`, ~900 lines)
   - **Quick Self-Check** (L31-81): 5 diagnostic questions to assess AI dependency
   - **Three Developer Patterns** (L82-126): Dependent, Avoidant, Augmented profiles with action paths
   - **UVAL Protocol** (L127-352): Understand → Verify → Apply → Learn framework
@@ -3312,7 +3530,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- **Intellectual Property Considerations** section in `guide/data-privacy.md`
+- **Intellectual Property Considerations** section in `guide/security/data-privacy.md`
   - Disclaimer about legal advice limitations
   - Key considerations: ownership, license contamination, vendor indemnification, sector compliance
   - Guidance to consult legal counsel for specific situations
@@ -3358,7 +3576,7 @@ cs --json "test" | jq .     # JSON for scripting
 #### Files Modified
 
 - `examples/scripts/session-search.sh` - Script v2.1 (367 lines)
-- `guide/observability.md` - Documentation updated with new options
+- `guide/ops/observability.md` - Documentation updated with new options
 
 #### Quality Score Progression
 
@@ -3396,7 +3614,7 @@ Major audit identifying and correcting factual errors that could mislead users a
 | File | Correction |
 |------|------------|
 | guide/ultimate-guide.md | New syntax + warning |
-| guide/data-privacy.md | New syntax + deprecation note |
+| guide/security/data-privacy.md | New syntax + deprecation note |
 | examples/scripts/audit-scan.sh | Detection + message fixed |
 | tools/audit-prompt.md | 3 references corrected |
 
@@ -3408,7 +3626,7 @@ Major audit identifying and correcting factual errors that could mislead users a
 | File | Correction |
 |------|------------|
 | guide/ultimate-guide.md | References → `permissions.deny` |
-| guide/data-privacy.md | Section removed |
+| guide/security/data-privacy.md | Section removed |
 | CHANGELOG.md:1244 | Historical reference corrected |
 
 #### 4. "Selective Context Loading" Myth → Lazy Loading Reality
@@ -3473,7 +3691,7 @@ cs -n 20              # More results
 |------|-------------|
 | `examples/scripts/session-search.sh` | Script in repo (source) |
 | `examples/README.md` | Entry in Scripts table |
-| `guide/observability.md` | Section "Session Search & Resume" |
+| `guide/ops/observability.md` | Section "Session Search & Resume" |
 | `guide/ultimate-guide.md:505-524` | Examples in "Finding session IDs" |
 | `README.md:398-403` | Section "Utility Scripts" |
 | `machine-readable/reference.yaml` | `deep_dive.session_search` entry |
@@ -3493,7 +3711,7 @@ source ~/.zshrc
 
 | File | Addition |
 |------|----------|
-| guide/security-hardening.md | Section 1.2 "Known Limitations of permissions.deny" |
+| guide/security/security-hardening.md | Section 1.2 "Known Limitations of permissions.deny" |
 
 **Content**:
 - Blocking matrix (Read/Edit/Write/Bash)
@@ -3506,9 +3724,9 @@ source ~/.zshrc
 ```
 guide/ultimate-guide.md
 guide/cheatsheet.md
-guide/data-privacy.md
-guide/security-hardening.md
-guide/observability.md
+guide/security/data-privacy.md
+guide/security/security-hardening.md
+guide/ops/observability.md
 machine-readable/reference.yaml
 examples/scripts/audit-scan.sh
 examples/scripts/session-search.sh (NEW)
@@ -3574,7 +3792,7 @@ Documentation alignment and navigation improvements.
 Comprehensive documentation covering 15 structured development methodologies for AI-assisted development (2025-2026), with practical workflow guides.
 
 #### New Files
-- **guide/methodologies.md** (NEW, ~400 lines) - Complete methodology reference:
+- **guide/core/methodologies.md** (NEW, ~400 lines) - Complete methodology reference:
   - 15 methodologies organized in 6-tier pyramid (Orchestration → Optimization)
   - BMAD, SDD, TDD, BDD, DDD, ATDD, CDD, FDD, Context Engineering, Eval-Driven, Multi-Agent, Iterative Loops, Prompt Engineering
   - Decision tree for choosing the right approach
@@ -3621,7 +3839,7 @@ Comprehensive documentation covering 15 structured development methodologies for
 New comprehensive documentation explaining how Claude Code works internally, based on official Anthropic sources and verified community analysis.
 
 #### New Files
-- **guide/architecture.md** (NEW, ~800 lines) - Complete technical deep-dive:
+- **guide/core/architecture.md** (NEW, ~800 lines) - Complete technical deep-dive:
   - The Master Loop (`while(tool_call)` architecture)
   - The Tool Arsenal (8 core tools: Bash, Read, Edit, Write, Grep, Glob, Task, TodoWrite)
   - Context Management Internals (~200K token budget, auto-compaction)
@@ -3718,7 +3936,7 @@ This release combines learnings from the LLM Engineers Handbook (guardrails, obs
   - Daily/weekly/monthly summaries
   - Cost estimation with configurable rates
   - Tool usage and project breakdowns
-- **guide/observability.md** - Full observability documentation (~180 lines):
+- **guide/ops/observability.md** - Full observability documentation (~180 lines):
   - Setup instructions, cost tracking, patterns
   - Limitations clearly documented
 
@@ -3773,7 +3991,7 @@ This release combines learnings from the LLM Engineers Handbook (guardrails, obs
 ## [3.2.0] - 2026-01-14
 
 ### Added
-- **guide/data-privacy.md** - Comprehensive data privacy documentation (NEW, ~200 lines)
+- **guide/security/data-privacy.md** - Comprehensive data privacy documentation (NEW, ~200 lines)
   - TL;DR retention table: 5 years (default) | 30 days (opt-out) | 0 (Enterprise ZDR)
   - Data flow diagram showing what leaves your machine
   - Known risks with MCP database connections

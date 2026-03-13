@@ -1344,11 +1344,11 @@ echo "dist/" >> .gitignore
 
 ### Related Documentation
 
-- [Claude Code Releases](../claude-code-releases.md) — v2.1.32, v2.1.33 release notes
+- [Claude Code Releases](../core/claude-code-releases.md) — v2.1.32, v2.1.33 release notes
 - [Sub-Agents](../ultimate-guide.md#sub-agents) — Single-agent task delegation
 - [Multi-Instance Workflows](../ultimate-guide.md#multi-instance-workflows) — Manual parallel coordination
 - [Dual-Instance Pattern](../ultimate-guide.md#dual-instance-pattern) — Plan-execute split
-- [AI Ecosystem: Beads Framework](../ai-ecosystem.md#beads-framework) — Alternative orchestration (Gas Town)
+- [AI Ecosystem: Beads Framework](../ecosystem/ai-ecosystem.md#beads-framework) — Alternative orchestration (Gas Town)
 
 ---
 

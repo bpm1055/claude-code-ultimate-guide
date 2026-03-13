@@ -9,7 +9,7 @@ updated: "2026-02-26"
 # ════════════════════════════════════════════════════════════════
 # DEEP DIVE - Line numbers in guide/ultimate-guide.md
 # Usage: Read file at line N for detailed documentation on topic
-# For architecture internals, see guide/architecture.md
+# For architecture internals, see guide/core/architecture.md
 # ════════════════════════════════════════════════════════════════
 deep_dive:
   # Visual Diagrams Series (40 Mermaid diagrams)
@@ -22,11 +22,11 @@ deep_dive:
   exploration_workflow: "guide/workflows/exploration-workflow.md"
   script_generation: "guide/workflows/iterative-refinement.md:200"
   anti_anchoring_prompts: "examples/semantic-anchors/anchor-catalog.md:248"
-  session_limits: "guide/architecture.md:442"
+  session_limits: "guide/core/architecture.md:442"
   claudemd_sizing: 3054
-  scope_success_rates: "guide/adoption-approaches.md:26"
+  scope_success_rates: "guide/roles/adoption-approaches.md:26"
   # Claude Code Releases
-  claude_code_releases: "guide/claude-code-releases.md"
+  claude_code_releases: "guide/core/claude-code-releases.md"
   claude_code_releases_yaml: "machine-readable/claude-code-releases.yaml"
   # Code Review Automation (Pat Cullen, Jan 2026)
   review_pr_advanced: "examples/commands/review-pr.md:81"
@@ -58,29 +58,29 @@ deep_dive:
   team_ai_instructions_token_savings: "59% context token reduction (measured, 5-dev team)"
   team_ai_instructions_threshold: "Team 5+ devs with multiple AI tools"
   # Known Issues & Critical Bugs (verified community reports)
-  known_issues: "guide/known-issues.md"
-  known_issues_github_bug: "guide/known-issues.md:7"  # GitHub auto-creation bug
-  known_issues_token_consumption: "guide/known-issues.md:105"  # Excessive token usage
-  known_issues_model_quality_aug2025: "guide/known-issues.md:197"  # Resolved: Aug 2025 degradation
+  known_issues: "guide/core/known-issues.md"
+  known_issues_github_bug: "guide/core/known-issues.md:7"  # GitHub auto-creation bug
+  known_issues_token_consumption: "guide/core/known-issues.md:105"  # Excessive token usage
+  known_issues_model_quality_aug2025: "guide/core/known-issues.md:197"  # Resolved: Aug 2025 degradation
   # Template Installation
   install_templates_script: "scripts/install-templates.sh"
   # Session management
-  session_search: "guide/observability.md:38"
+  session_search: "guide/ops/observability.md:38"
   session_search_script: "examples/scripts/session-search.sh"
   cc_sessions_script: "examples/scripts/cc-sessions.py"
-  session_resume_limitations: "guide/observability.md:126"
-  session_cross_folder_migration: "guide/observability.md:126"
-  session_migration_manual: "guide/observability.md:126"
-  session_migration_risks: "guide/observability.md:126"
-  session_migration_community_tool: "guide/observability.md:52"
+  session_resume_limitations: "guide/ops/observability.md:126"
+  session_cross_folder_migration: "guide/ops/observability.md:126"
+  session_migration_manual: "guide/ops/observability.md:126"
+  session_migration_risks: "guide/ops/observability.md:126"
+  session_migration_community_tool: "guide/ops/observability.md:52"
   session_migration_issue: "https://github.com/anthropics/claude-code/issues/1516"
   session_migration_weller_skill: "https://github.com/jimweller/dotfiles/tree/main/dotfiles/claude-code/skills/claude-migrate-session"
   # Activity monitoring
-  activity_monitoring: "guide/observability.md:467"            # Tool call audit via JSONL
-  activity_monitoring_queries: "guide/observability.md:467"    # jq queries for audit
-  activity_monitoring_alerts: "guide/observability.md:467"     # Sensitive pattern detection
-  external_monitoring_tools: "guide/observability.md:527"      # ccusage, claude-code-otel, Akto, MLflow, ccboard
-  proxying_claude_code: "guide/observability.md:699"           # Proxyman, mitmproxy, ANTHROPIC_API_URL
+  activity_monitoring: "guide/ops/observability.md:467"            # Tool call audit via JSONL
+  activity_monitoring_queries: "guide/ops/observability.md:467"    # jq queries for audit
+  activity_monitoring_alerts: "guide/ops/observability.md:467"     # Sensitive pattern detection
+  external_monitoring_tools: "guide/ops/observability.md:527"      # ccusage, claude-code-otel, Akto, MLflow, ccboard
+  proxying_claude_code: "guide/ops/observability.md:699"           # Proxyman, mitmproxy, ANTHROPIC_API_URL
   ccboard_activity_plan: "docs/resource-evaluations/ccboard-activity-module-plan.md"
   # Cost optimization - Local execution bridge
   bridge_script: "examples/scripts/bridge.py"
@@ -91,7 +91,7 @@ deep_dive:
   rtk_website: "https://www.rtk-ai.app/"
   rtk_evaluation: "docs/resource-evaluations/rtk-evaluation.md"
   rtk_guide: "guide/ultimate-guide.md:14553"
-  rtk_third_party: "guide/third-party-tools.md:7"
+  rtk_third_party: "guide/ecosystem/third-party-tools.md:7"
   rtk_claude_md: "examples/claude-md/rtk-optimized.md"
   rtk_skill: "examples/skills/rtk-optimizer/SKILL.md"
   rtk_hook: "examples/hooks/bash/rtk-auto-wrapper.sh"
@@ -100,7 +100,7 @@ deep_dive:
   rtk_score: "5/5"
   rtk_installation: "cargo install rtk or brew install rtk-ai/tap/rtk"
   # Google Antigravity (Agent-First IDE)
-  antigravity_guide: "guide/ai-ecosystem.md:1366"
+  antigravity_guide: "guide/ecosystem/ai-ecosystem.md:1366"
   antigravity_evaluation: "docs/resource-evaluations/google-antigravity-evaluation.md"
   antigravity_proxy: "https://www.npmjs.com/package/antigravity-claude-proxy"
   antigravity_codelabs: "https://codelabs.developers.google.com/getting-started-google-antigravity"
@@ -125,35 +125,35 @@ deep_dive:
   talk_pipeline_patterns: "skill chaining + file-based state + tool permission scoping + human-in-the-loop gate + AI-to-AI handoff (Claude → Kimi)"
   talk_pipeline_checkpoint: "Stage 4 CHECKPOINT: user selects angle + title before script starts"
   talk_pipeline_kimi: "kimi.com (free) — copy-paste Stage 5 prompt for AI slide generation"
-  # reMarkable 2 + AI (guide/remarkable-ai.md)
-  remarkable_ai_guide: "guide/remarkable-ai.md"
-  remarkable_mcp_server: "guide/remarkable-ai.md#1-remarkable-mcp--le-game-changer"
+  # reMarkable 2 + AI (guide/ecosystem/remarkable-ai.md)
+  remarkable_ai_guide: "guide/ecosystem/remarkable-ai.md"
+  remarkable_mcp_server: "guide/ecosystem/remarkable-ai.md#1-remarkable-mcp--le-game-changer"
   remarkable_mcp_repo: "https://github.com/SamMorrowDrums/remarkable-mcp"
-  remarkable_ghostwriter: "guide/remarkable-ai.md#2-ghostwriter--interface-vision-llm"
-  remarkable_obsidian_sync: "guide/remarkable-ai.md#3-sync-remarkable--obsidian"
-  remarkable_ocr_pipeline: "guide/remarkable-ai.md#4-ocr--ai-pipeline-custom"
-  remarkable_ssh_tools: "guide/remarkable-ai.md#5-accès-ssh-et-outils-communautaires"
-  remarkable_meeting_workflow: "guide/remarkable-ai.md#10-meeting-notes--ai-summary"
-  remarkable_workflows_to_build: "guide/remarkable-ai.md#14-workflows-ai-augmentés-à-construire"
-  remarkable_getting_started: "guide/remarkable-ai.md#15-par-où-commencer"
+  remarkable_ghostwriter: "guide/ecosystem/remarkable-ai.md#2-ghostwriter--interface-vision-llm"
+  remarkable_obsidian_sync: "guide/ecosystem/remarkable-ai.md#3-sync-remarkable--obsidian"
+  remarkable_ocr_pipeline: "guide/ecosystem/remarkable-ai.md#4-ocr--ai-pipeline-custom"
+  remarkable_ssh_tools: "guide/ecosystem/remarkable-ai.md#5-accès-ssh-et-outils-communautaires"
+  remarkable_meeting_workflow: "guide/ecosystem/remarkable-ai.md#10-meeting-notes--ai-summary"
+  remarkable_workflows_to_build: "guide/ecosystem/remarkable-ai.md#14-workflows-ai-augmentés-à-construire"
+  remarkable_getting_started: "guide/ecosystem/remarkable-ai.md#15-par-où-commencer"
   remarkable_community: "https://github.com/reHackable/awesome-reMarkable"
   # Whitepapers (FR + EN) — 9 focused whitepapers on Claude Code
   whitepapers_url: "https://www.florian.bruniaux.com/guides"
   whitepapers_fr: "whitepapers/fr/"  # FR sources (Quarto .qmd)
   whitepapers_en: "whitepapers/en/"  # EN sources (Quarto .qmd)
   whitepapers_topics: "foundations, prompting, customization, security, architecture, team, privacy, reference, agent-teams"
-  # Learning with AI (guide/learning-with-ai.md)
-  learning_quick_check: "guide/learning-with-ai.md:38"
-  learning_uval_protocol: "guide/learning-with-ai.md:218"
-  learning_claude_config: "guide/learning-with-ai.md:458"
-  learning_breaking_dependency: "guide/learning-with-ai.md:575"
-  learning_embracing_ai: "guide/learning-with-ai.md:623"
-  learning_30day_plan: "guide/learning-with-ai.md:815"
-  learning_red_flags: "guide/learning-with-ai.md:612"
+  # Learning with AI (guide/roles/learning-with-ai.md)
+  learning_quick_check: "guide/roles/learning-with-ai.md:38"
+  learning_uval_protocol: "guide/roles/learning-with-ai.md:218"
+  learning_claude_config: "guide/roles/learning-with-ai.md:458"
+  learning_breaking_dependency: "guide/roles/learning-with-ai.md:575"
+  learning_embracing_ai: "guide/roles/learning-with-ai.md:623"
+  learning_30day_plan: "guide/roles/learning-with-ai.md:815"
+  learning_red_flags: "guide/roles/learning-with-ai.md:612"
   # Productivity Research RCTs
-  productivity_rct_metr: "guide/learning-with-ai.md:925"  # METR 2025: experienced devs 19% slower on large codebases despite perceiving 20% faster
-  productivity_rct_echoes: "guide/learning-with-ai.md:926"  # Borg 2025: 30.7% faster (median), ~55.9% habitual users, no maintainability impact downstream
-  productivity_maintainability_empirical: "guide/learning-with-ai.md:926"  # Empirical data on "AI code is unmaintainable" claim — blind RCT shows no significant difference
+  productivity_rct_metr: "guide/roles/learning-with-ai.md:925"  # METR 2025: experienced devs 19% slower on large codebases despite perceiving 20% faster
+  productivity_rct_echoes: "guide/roles/learning-with-ai.md:926"  # Borg 2025: 30.7% faster (median), ~55.9% habitual users, no maintainability impact downstream
+  productivity_maintainability_empirical: "guide/roles/learning-with-ai.md:926"  # Empirical data on "AI code is unmaintainable" claim — blind RCT shows no significant difference
   trust_calibration_maintainability_nuance: "guide/ultimate-guide.md:1097"  # Nuance: defect rates ≠ maintenance burden (Borg et al. 2025)
   learning_mode_template: "examples/claude-md/learning-mode.md"
   learn_quiz_command: "examples/commands/learn/quiz.md"
@@ -161,23 +161,23 @@ deep_dive:
   learn_alternatives_command: "examples/commands/learn/alternatives.md"
   learning_capture_hook: "examples/hooks/bash/learning-capture.sh"
   # Anti-patterns
-  vibe_coding_trap: "guide/learning-with-ai.md:87"
+  vibe_coding_trap: "guide/roles/learning-with-ai.md:87"
   vibe_coding_context_overload: 13097
   vibe_coding_context_overload_source: "Jens Rusitschka, 'Vibe Coding, Level 2' (Jan 2026)"
   vibe_coding_phased_strategy: 13097
-  # AI Traceability & Attribution (guide/ai-traceability.md) - Added 2026-01-24
-  ai_traceability_guide: "guide/ai-traceability.md"
-  ai_traceability_why: "guide/ai-traceability.md:29"
-  ai_traceability_disclosure_spectrum: "guide/ai-traceability.md:64"
-  ai_traceability_co_authored_by: "guide/ai-traceability.md:98"
-  ai_traceability_assisted_by: "guide/ai-traceability.md:120"
-  ai_traceability_git_ai: "guide/ai-traceability.md:170"
-  ai_traceability_llvm_policy: "guide/ai-traceability.md:201"
-  ai_traceability_ghostty_policy: "guide/ai-traceability.md:236"
-  ai_traceability_fedora_policy: "guide/ai-traceability.md:261"
-  ai_traceability_promptpwnd: "guide/ai-traceability.md:501"
-  ai_traceability_implementation: "guide/ai-traceability.md:566"
-  ai_traceability_templates: "guide/ai-traceability.md:648"
+  # AI Traceability & Attribution (guide/ops/ai-traceability.md) - Added 2026-01-24
+  ai_traceability_guide: "guide/ops/ai-traceability.md"
+  ai_traceability_why: "guide/ops/ai-traceability.md:29"
+  ai_traceability_disclosure_spectrum: "guide/ops/ai-traceability.md:64"
+  ai_traceability_co_authored_by: "guide/ops/ai-traceability.md:98"
+  ai_traceability_assisted_by: "guide/ops/ai-traceability.md:120"
+  ai_traceability_git_ai: "guide/ops/ai-traceability.md:170"
+  ai_traceability_llvm_policy: "guide/ops/ai-traceability.md:201"
+  ai_traceability_ghostty_policy: "guide/ops/ai-traceability.md:236"
+  ai_traceability_fedora_policy: "guide/ops/ai-traceability.md:261"
+  ai_traceability_promptpwnd: "guide/ops/ai-traceability.md:501"
+  ai_traceability_implementation: "guide/ops/ai-traceability.md:566"
+  ai_traceability_templates: "guide/ops/ai-traceability.md:648"
   # AI Disclosure Templates
   ai_disclosure_contributing: "examples/config/CONTRIBUTING-ai-disclosure.md"
   ai_disclosure_pr_template: "examples/config/PULL_REQUEST_TEMPLATE-ai.md"
@@ -187,15 +187,15 @@ deep_dive:
   tts_voice_catalog: "examples/integrations/agent-vibes/voice-catalog.md"
   tts_troubleshooting: "examples/integrations/agent-vibes/troubleshooting.md"
   tts_workflow: "guide/workflows/tts-setup.md"
-  tts_ai_ecosystem: "guide/ai-ecosystem.md:1124"
+  tts_ai_ecosystem: "guide/ecosystem/ai-ecosystem.md:1124"
   tts_hook_example: "examples/hooks/bash/tts-selective.sh"
   tts_claude_md_template: "examples/claude-md/tts-enabled.md"
-  # Sandbox Isolation for Coding Agents (guide/sandbox-isolation.md) - Added 2026-01-31
-  sandbox_isolation_guide: "guide/sandbox-isolation.md"
-  sandbox_isolation_decision_tree: "guide/sandbox-isolation.md:7"
-  sandbox_docker_sandboxes: "guide/sandbox-isolation.md:67"
-  sandbox_docker_network: "guide/sandbox-isolation.md:121"
-  sandbox_docker_templates: "guide/sandbox-isolation.md:165"
+  # Sandbox Isolation for Coding Agents (guide/security/sandbox-isolation.md) - Added 2026-01-31
+  sandbox_isolation_guide: "guide/security/sandbox-isolation.md"
+  sandbox_isolation_decision_tree: "guide/security/sandbox-isolation.md:7"
+  sandbox_docker_sandboxes: "guide/security/sandbox-isolation.md:67"
+  sandbox_docker_network: "guide/security/sandbox-isolation.md:121"
+  sandbox_docker_templates: "guide/security/sandbox-isolation.md:165"
   sandbox_docker_docs: "https://docs.docker.com/ai/sandboxes/"
   sandbox_docker_claude_config: "https://docs.docker.com/ai/sandboxes/claude-code/"
   sandbox_docker_network_docs: "https://docs.docker.com/ai/sandboxes/network-policies/"
@@ -204,26 +204,26 @@ deep_dive:
   sandbox_cloudflare_sdk: "https://developers.cloudflare.com/sandbox/tutorials/claude-code/"
   sandbox_vercel: "https://vercel.com/docs/vercel-sandbox/"
   sandbox_e2b: "https://e2b.dev"
-  sandbox_native_cc: "guide/architecture.md:606"
+  sandbox_native_cc: "guide/core/architecture.md:606"
   # Native Claude Code Sandbox (Official docs, v2.1.0+) - Added 2026-02-02
-  sandbox_native_guide: "guide/sandbox-native.md"
-  sandbox_native_why: "guide/sandbox-native.md:47"  # Why Native Sandboxing
-  sandbox_native_os_primitives: "guide/sandbox-native.md:68"  # Seatbelt vs bubblewrap
-  sandbox_native_filesystem: "guide/sandbox-native.md:178"  # Filesystem isolation
-  sandbox_native_network: "guide/sandbox-native.md:221"  # Network proxy architecture
-  sandbox_native_modes: "guide/sandbox-native.md:7"  # Auto-allow vs Regular
-  sandbox_native_escape_hatch: "guide/sandbox-native.md:341"  # dangerouslyDisableSandbox
-  sandbox_native_security_limits: "guide/sandbox-native.md:396"  # Domain fronting, Unix sockets
-  sandbox_native_opensource: "guide/sandbox-native.md:481"  # Open-source runtime
-  sandbox_native_platforms: "guide/sandbox-native.md:505"  # Platform support
-  sandbox_native_decision_tree: "guide/sandbox-native.md:517"  # Native vs Docker
-  sandbox_native_config_examples: "guide/sandbox-native.md:564"  # Configuration examples
-  sandbox_native_best_practices: "guide/sandbox-native.md:637"  # Best practices
-  sandbox_native_troubleshooting: "guide/sandbox-native.md:650"  # Troubleshooting
+  sandbox_native_guide: "guide/security/sandbox-native.md"
+  sandbox_native_why: "guide/security/sandbox-native.md:47"  # Why Native Sandboxing
+  sandbox_native_os_primitives: "guide/security/sandbox-native.md:68"  # Seatbelt vs bubblewrap
+  sandbox_native_filesystem: "guide/security/sandbox-native.md:178"  # Filesystem isolation
+  sandbox_native_network: "guide/security/sandbox-native.md:221"  # Network proxy architecture
+  sandbox_native_modes: "guide/security/sandbox-native.md:7"  # Auto-allow vs Regular
+  sandbox_native_escape_hatch: "guide/security/sandbox-native.md:341"  # dangerouslyDisableSandbox
+  sandbox_native_security_limits: "guide/security/sandbox-native.md:396"  # Domain fronting, Unix sockets
+  sandbox_native_opensource: "guide/security/sandbox-native.md:481"  # Open-source runtime
+  sandbox_native_platforms: "guide/security/sandbox-native.md:505"  # Platform support
+  sandbox_native_decision_tree: "guide/security/sandbox-native.md:517"  # Native vs Docker
+  sandbox_native_config_examples: "guide/security/sandbox-native.md:564"  # Configuration examples
+  sandbox_native_best_practices: "guide/security/sandbox-native.md:637"  # Best practices
+  sandbox_native_troubleshooting: "guide/security/sandbox-native.md:650"  # Troubleshooting
   sandbox_runtime_oss: "https://github.com/anthropic-experimental/sandbox-runtime"
   sandbox_runtime_npm: "https://www.npmjs.com/package/@anthropic-ai/sandbox-runtime"
   sandbox_official_docs: "https://code.claude.com/docs/en/sandboxing"
-  sandbox_comparison_native_docker: "guide/sandbox-isolation.md:238"  # Section 4 Native CC
+  sandbox_comparison_native_docker: "guide/security/sandbox-isolation.md:238"  # Section 4 Native CC
   sandbox_native_evaluation: "docs/resource-evaluations/native-sandbox-official-docs.md"
   sandbox_native_score: "5/5"
   # Templates (Added 2026-02-02)
@@ -232,19 +232,19 @@ deep_dive:
   sandbox_validation_hook: "examples/hooks/bash/sandbox-validation.sh"
   # Docker Sandboxes (existing)
   sandbox_evaluation: "docs/resource-evaluations/docker-sandboxes-isolation.md"
-  sandbox_safe_autonomy: "guide/sandbox-isolation.md:496"  # Safe Autonomy Workflows
-  sandbox_anti_patterns: "guide/sandbox-isolation.md:546"  # Anti-Patterns
-  sandbox_comparison_matrix: "guide/sandbox-isolation.md:477"  # Comparison Matrix
+  sandbox_safe_autonomy: "guide/security/sandbox-isolation.md:496"  # Safe Autonomy Workflows
+  sandbox_anti_patterns: "guide/security/sandbox-isolation.md:546"  # Anti-Patterns
+  sandbox_comparison_matrix: "guide/security/sandbox-isolation.md:477"  # Comparison Matrix
   sandbox_score: "4/5"
-  # Third-Party Tools (guide/third-party-tools.md) - Added 2026-02-01
-  third_party_tools_guide: "guide/third-party-tools.md"
-  third_party_tools_cost_tracking: "guide/third-party-tools.md:42"
-  third_party_tools_rtk: "guide/third-party-tools.md:7"
-  third_party_tools_session_mgmt: "guide/third-party-tools.md:126"
-  third_party_tools_config_mgmt: "guide/third-party-tools.md:214"
-  third_party_tools_alternative_uis: "guide/third-party-tools.md:259"
-  third_party_tools_known_gaps: "guide/third-party-tools.md:375"
-  third_party_tools_recommendations: "guide/third-party-tools.md:391"
+  # Third-Party Tools (guide/ecosystem/third-party-tools.md) - Added 2026-02-01
+  third_party_tools_guide: "guide/ecosystem/third-party-tools.md"
+  third_party_tools_cost_tracking: "guide/ecosystem/third-party-tools.md:42"
+  third_party_tools_rtk: "guide/ecosystem/third-party-tools.md:7"
+  third_party_tools_session_mgmt: "guide/ecosystem/third-party-tools.md:126"
+  third_party_tools_config_mgmt: "guide/ecosystem/third-party-tools.md:214"
+  third_party_tools_alternative_uis: "guide/ecosystem/third-party-tools.md:259"
+  third_party_tools_known_gaps: "guide/ecosystem/third-party-tools.md:375"
+  third_party_tools_recommendations: "guide/ecosystem/third-party-tools.md:391"
   third_party_ccusage: "https://www.npmjs.com/package/ccusage"
   third_party_ccusage_site: "https://ccusage.com"
   third_party_ccburn: "https://github.com/JuanjoFuchs/ccburn"
@@ -291,18 +291,18 @@ deep_dive:
   permissions_deny_known_limitation: "background indexing may expose via system reminders before checks — GitHub #4160"
   permissions_deny_defense_in_depth: "store secrets outside project dir for guaranteed protection"
   # Visual Reference (ASCII diagrams)
-  visual_reference: "guide/visual-reference.md"
-  # Architecture internals (guide/architecture.md)
-  architecture_visual_overview: "guide/architecture.md:51"
+  visual_reference: "guide/core/visual-reference.md"
+  # Architecture internals (guide/core/architecture.md)
+  architecture_visual_overview: "guide/core/architecture.md:51"
   architecture_visual_source: "https://www.linkedin.com/posts/mohamed-ali-ben-salem-2b777b9a_en-ce-moment-je-vois-passer-des-posts-du-activity-7420592149110362112-eY5a"
-  architecture_master_loop: "guide/architecture.md:82"
-  architecture_tools: "guide/architecture.md:219"
-  architecture_context: "guide/architecture.md:312"
-  architecture_subagents: "guide/architecture.md:471"
-  architecture_permissions: "guide/architecture.md:541"
-  architecture_mcp: "guide/architecture.md:746"
+  architecture_master_loop: "guide/core/architecture.md:82"
+  architecture_tools: "guide/core/architecture.md:219"
+  architecture_context: "guide/core/architecture.md:312"
+  architecture_subagents: "guide/core/architecture.md:471"
+  architecture_permissions: "guide/core/architecture.md:541"
+  architecture_mcp: "guide/core/architecture.md:746"
   architecture_mcp_visual: "guide/images/mcp-architecture-diagram.svg"
-  architecture_philosophy: "guide/architecture.md:1205"
+  architecture_philosophy: "guide/core/architecture.md:1205"
   # Official LLM-Optimized Documentation - Added 2026-02-25
   official_llms_index: "https://code.claude.com/docs/llms.txt"       # Index ~65 pages, ~15-20K tokens — use first for discovery
   official_llms_full: "https://code.claude.com/docs/llms-full.txt"   # Full doc ~98KB, ~25-30K tokens — source de vérité officielle
@@ -310,9 +310,9 @@ deep_dive:
   system_prompts_official: "https://platform.claude.com/docs/en/release-notes/system-prompts"
   system_prompts_willison_analysis: "https://simonwillison.net/2025/May/25/claude-4-system-prompt/"
   system_prompts_prompthub: "https://www.prompthub.us/blog/an-analysis-of-the-claude-4-system-prompt"
-  system_prompts_architecture: "guide/architecture.md:360"
+  system_prompts_architecture: "guide/core/architecture.md:360"
   # MCP Apps Extension (SEP-1865) - Added 2026-01-27
-  mcp_apps_architecture: "guide/architecture.md:753"
+  mcp_apps_architecture: "guide/core/architecture.md:753"
   mcp_apps_evolution: "guide/ultimate-guide.md:9252"
   mcp_apps_spec: "https://github.com/modelcontextprotocol/ext-apps"
   mcp_apps_blog_mcp: "https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/"
@@ -534,16 +534,16 @@ deep_dive:
     - "Linear MCP: ~9.5k installs (issue tracking)"
   plugins_awesome_list: "https://github.com/hesreallyhim/awesome-claude-code"
   plugins_awesome_list_stars: "20k+"
-  chain_of_verification: "guide/methodologies.md:230"
+  chain_of_verification: "guide/core/methodologies.md:230"
   chain_of_verification_paper: "https://arxiv.org/abs/2309.11495"
   chain_of_verification_acl: "https://aclanthology.org/2024.findings-acl.212/"
   # Verification Loops & Eval Harness (added 2026-01-23)
-  verification_loops: "guide/methodologies.md:245"
+  verification_loops: "guide/core/methodologies.md:245"
   verification_loops_source: "https://www.anthropic.com/engineering/claude-code-best-practices"
-  eval_harness: "guide/methodologies.md:289"
+  eval_harness: "guide/core/methodologies.md:289"
   eval_harness_source: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
   # GSD (Get Shit Done) methodology (added 2026-01-25)
-  gsd_methodology: "guide/methodologies.md:53"
+  gsd_methodology: "guide/core/methodologies.md:53"
   gsd_evaluation: "docs/resource-evaluations/gsd-evaluation.md"
   gsd_source: "https://github.com/glittercowboy/get-shit-done"
   gsd_note: "Overlap with existing patterns (Ralph Loop, Gas Town, BMAD)"
@@ -572,35 +572,35 @@ deep_dive:
   audit_agents_skills_industry_context: "29.5% deploy without evaluation (LangChain 2026), 18% cite agent bugs as top challenge"
   audit_agents_skills_guide_refs: "guide/ultimate-guide.md:4951 (after Agent Validation Checklist), guide/ultimate-guide.md:5495 (after Skill Validation)"
   # Practitioner Insights (external validation)
-  practitioner_insights: "guide/ai-ecosystem.md:2170"
-  practitioner_dave_van_veen: "guide/ai-ecosystem.md:2174"
-  practitioner_matteo_collina: "guide/ai-ecosystem.md:2203"
+  practitioner_insights: "guide/ecosystem/ai-ecosystem.md:2170"
+  practitioner_dave_van_veen: "guide/ecosystem/ai-ecosystem.md:2174"
+  practitioner_matteo_collina: "guide/ecosystem/ai-ecosystem.md:2203"
   # Outcome Engineering (o16g) - Emerging manifesto (2026-02-13)
-  outcome_engineering_o16g: "guide/ai-ecosystem.md:2366"
+  outcome_engineering_o16g: "guide/ecosystem/ai-ecosystem.md:2366"
   outcome_engineering_url: "https://o16g.com/"
   outcome_engineering_author: "Cory Ondrejka (CTO Onebrief, co-creator Second Life, ex-VP Google/Meta)"
   outcome_engineering_status: "Emerging - on watch list for community adoption"
   practitioner_collina_source: "https://adventures.nodeland.dev/archive/the-human-in-the-loop/"
-  practitioner_steinberger: "guide/ai-ecosystem.md:2242"
+  practitioner_steinberger: "guide/ecosystem/ai-ecosystem.md:2242"
   practitioner_steinberger_source: "https://steipete.me/posts/2025/shipping-at-inference-speed"
-  practitioner_addy_osmani: "guide/ai-ecosystem.md:2269"
+  practitioner_addy_osmani: "guide/ecosystem/ai-ecosystem.md:2269"
   practitioner_osmani_source: "https://addyo.substack.com/p/the-80-problem-in-agentic-coding"
-  practitioner_alan: "guide/ai-ecosystem.md:2299"
+  practitioner_alan: "guide/ecosystem/ai-ecosystem.md:2299"
   practitioner_alan_source: "https://www.linkedin.com/pulse/le-principe-de-la-tour-eiffel-et-ralph-wiggum-maxime-le-bras-psmxe/"
-  verification_paradox: "guide/production-safety.md:639"
+  verification_paradox: "guide/security/production-safety.md:639"
   verification_paradox_source: "https://www.linkedin.com/pulse/le-principe-de-la-tour-eiffel-et-ralph-wiggum-maxime-le-bras-psmxe/"
-  eighty_percent_problem: "guide/ai-ecosystem.md:2269"
-  comprehension_debt_secondary: "guide/ai-ecosystem.md:2269"  # See also: vibe_coding_trap (primary)
-  # DevOps/SRE Guide (guide/devops-sre.md)
-  devops_sre_guide: "guide/devops-sre.md"
-  devops_fire_framework: "guide/devops-sre.md:46"
-  devops_k8s_troubleshooting: "guide/devops-sre.md:129"
-  devops_k8s_prompts: "guide/devops-sre.md:151"
-  devops_incident_response: "guide/devops-sre.md:333"
-  devops_iac_patterns: "guide/devops-sre.md:504"
-  devops_guardrails: "guide/devops-sre.md:687"
-  devops_limitations: "guide/devops-sre.md:297"
-  devops_quick_reference: "guide/devops-sre.md:794"
+  eighty_percent_problem: "guide/ecosystem/ai-ecosystem.md:2269"
+  comprehension_debt_secondary: "guide/ecosystem/ai-ecosystem.md:2269"  # See also: vibe_coding_trap (primary)
+  # DevOps/SRE Guide (guide/ops/devops-sre.md)
+  devops_sre_guide: "guide/ops/devops-sre.md"
+  devops_fire_framework: "guide/ops/devops-sre.md:46"
+  devops_k8s_troubleshooting: "guide/ops/devops-sre.md:129"
+  devops_k8s_prompts: "guide/ops/devops-sre.md:151"
+  devops_incident_response: "guide/ops/devops-sre.md:333"
+  devops_iac_patterns: "guide/ops/devops-sre.md:504"
+  devops_guardrails: "guide/ops/devops-sre.md:687"
+  devops_limitations: "guide/ops/devops-sre.md:297"
+  devops_quick_reference: "guide/ops/devops-sre.md:794"
   devops_agent: "examples/agents/devops-sre.md"
   devops_claude_md: "examples/claude-md/devops-sre.md"
   # Product Designer (design-to-code workflow)
@@ -691,19 +691,19 @@ deep_dive:
       author: "Steve Yegge"
       description: "Multi-agent workspace manager using Claude Code instances"
       status: "Experimental (Jan 2026)"
-      guide_section: "guide/ai-ecosystem.md:850"
+      guide_section: "guide/ecosystem/ai-ecosystem.md:850"
     multiclaude:
       repo: "https://github.com/dlorenc/multiclaude"
       author: "dlorenc"
       description: "Self-hosted multi-agent Claude Code spawner (tmux + git worktrees)"
       status: "Active development (Jan 2026, 383 stars)"
-      guide_section: "guide/ai-ecosystem.md:850"
+      guide_section: "guide/ecosystem/ai-ecosystem.md:850"
     agent_chat:
       repo: "https://github.com/justinabrahms/agent-chat"
       author: "Justin Abrahms"
       description: "Real-time monitoring UI for Gas Town and multiclaude (SSE + SQLite)"
       status: "Early preview (Jan 2026, v0.2.0)"
-      guide_section: "guide/ai-ecosystem.md:850"
+      guide_section: "guide/ecosystem/ai-ecosystem.md:850"
   # External research & alignment tools
   external_research:
     claude_constitution:
@@ -713,7 +713,7 @@ deep_dive:
       description: "Claude's Constitutional AI framework - value hierarchy (safety > ethics > compliance > utility)"
       license: "CC0 1.0 (public domain)"
       published: "2026-01-21"
-      guide_section: "guide/data-privacy.md:296"
+      guide_section: "guide/security/data-privacy.md:296"
     petri_v2:
       repo: "https://github.com/safety-research/petri"
       blog: "https://alignment.anthropic.com/2026/petri-v2/"
@@ -830,7 +830,7 @@ deep_dive:
   spec_osmani_score: "4/5"
   spec_task_granularity: "guide/workflows/spec-first.md:62"  # Vertical slices + PRD checklist (Allan Hill, Feb 2026)
   spec_prd_checklist: "guide/workflows/spec-first.md:68"  # 6-dimension PRD quality checklist
-  atdd_with_agents: "guide/methodologies.md:161"  # ATDD + Gherkin for agentic workflows
+  atdd_with_agents: "guide/core/methodologies.md:161"  # ATDD + Gherkin for agentic workflows
   commands_table: 47
   shortcuts_table: 368
   troubleshooting: 11311
@@ -842,23 +842,23 @@ deep_dive:
   ai_ecosystem_tool_matrix: 20031
   ai_ecosystem_workflows: 20166
   ai_ecosystem_integration: 20294
-  ai_ecosystem_detailed: "guide/ai-ecosystem.md"
-  ai_ecosystem_goose: "guide/ai-ecosystem.md:2074"
-  ai_ecosystem_goose_comparison: "guide/ai-ecosystem.md:2090"
-  ai_ecosystem_context_packing: "guide/ai-ecosystem.md:2533"
-  ai_ecosystem_multi_ide_sync: "guide/ai-ecosystem.md:1282"
-  agents_md_support_status: "guide/ai-ecosystem.md:1348"
-  ai_ecosystem_build_vs_use: "guide/ai-ecosystem.md:2399"  # Section 11.3 - When to Build vs Use (ADK, LangChain, Vercel AI SDK)
+  ai_ecosystem_detailed: "guide/ecosystem/ai-ecosystem.md"
+  ai_ecosystem_goose: "guide/ecosystem/ai-ecosystem.md:2074"
+  ai_ecosystem_goose_comparison: "guide/ecosystem/ai-ecosystem.md:2090"
+  ai_ecosystem_context_packing: "guide/ecosystem/ai-ecosystem.md:2533"
+  ai_ecosystem_multi_ide_sync: "guide/ecosystem/ai-ecosystem.md:1282"
+  agents_md_support_status: "guide/ecosystem/ai-ecosystem.md:1348"
+  ai_ecosystem_build_vs_use: "guide/ecosystem/ai-ecosystem.md:2399"  # Section 11.3 - When to Build vs Use (ADK, LangChain, Vercel AI SDK)
   # Architecture Diagrams as Context (advanced pattern) - Added 2026-01-25
-  architecture_diagrams_input: "guide/ai-ecosystem.md:2567"
+  architecture_diagrams_input: "guide/ecosystem/ai-ecosystem.md:2567"
   architecture_diagrams_mcp_tools:
     - "Archy MCP: https://www.pulsemcp.com/servers/phxdev1-archy"
     - "Mermaid MCP: 61.4K users"
     - "Blueprint MCP (ArcadeAI)"
   llm_oop_research: "https://dl.acm.org/doi/10.1145/3639474.3640052"
   architecture_diagrams_source: "https://www.linkedin.com/posts/tigraff_uml-claude-wibecoding-activity-7420595633826258944-gGO5"
-  ai_ecosystem_voice_to_text: "guide/ai-ecosystem.md:1066"
-  ai_ecosystem_alternative_providers: "guide/ai-ecosystem.md:2639"
+  ai_ecosystem_voice_to_text: "guide/ecosystem/ai-ecosystem.md:1066"
+  ai_ecosystem_alternative_providers: "guide/ecosystem/ai-ecosystem.md:2639"
   voice_refine_skill: "examples/skills/voice-refine/SKILL.md"
   # Cowork documentation (v1.0 - migrated to dedicated repo)
   cowork_reference: "machine-readable/cowork-reference.yaml"  # Dedicated YAML index (kept local)
@@ -874,7 +874,7 @@ deep_dive:
   cowork_faq: "https://github.com/FlorianBruniaux/claude-cowork-guide/blob/main/reference/faq.md"
   cowork_prompts: "https://github.com/FlorianBruniaux/claude-cowork-guide/tree/main/prompts"
   cowork_workflows: "https://github.com/FlorianBruniaux/claude-cowork-guide/tree/main/workflows"
-  cowork_section: "guide/ai-ecosystem.md:1809"
+  cowork_section: "guide/ecosystem/ai-ecosystem.md:1809"
   cowork_ultimate_guide: 20348
   # Experimental Features
   teammatetool: 3976
@@ -914,25 +914,25 @@ deep_dive:
   workflow: 58  # Workflow (9 steps)
   fix: 11948  # Troubleshooting section
   architecture: 919  # Architecture internals
-  production_safety: "guide/production-safety.md"  # Production safety rules
-  security_hardening: "guide/security-hardening.md"  # Security best practices
-  security_cve_summary: "guide/security-hardening.md:15"  # Decision Matrix + CVEs
-  security_supply_chain_stats: "guide/security-hardening.md:137"  # Agent Skills Supply Chain Risks
-  security_mcp_scan_tool: "guide/security-hardening.md:32"  # MCP Vetting Workflow
-  security_malicious_extensions: "guide/security-hardening.md:252"  # .claude/ attack surface (§1.5)
-  security_kill_switch: "guide/security-hardening.md:630"  # AI Kill Switch & Containment Architecture (§3.5)
-  security_claude_folder_audit: "guide/security-hardening.md:228"  # Repository Pre-Scan (§1.4)
+  production_safety: "guide/security/production-safety.md"  # Production safety rules
+  security_hardening: "guide/security/security-hardening.md"  # Security best practices
+  security_cve_summary: "guide/security/security-hardening.md:15"  # Decision Matrix + CVEs
+  security_supply_chain_stats: "guide/security/security-hardening.md:137"  # Agent Skills Supply Chain Risks
+  security_mcp_scan_tool: "guide/security/security-hardening.md:32"  # MCP Vetting Workflow
+  security_malicious_extensions: "guide/security/security-hardening.md:252"  # .claude/ attack surface (§1.5)
+  security_kill_switch: "guide/security/security-hardening.md:630"  # AI Kill Switch & Containment Architecture (§3.5)
+  security_claude_folder_audit: "guide/security/security-hardening.md:228"  # Repository Pre-Scan (§1.4)
   security_toxicskills_evaluation: "docs/resource-evaluations/snyk-toxicskills-evaluation.md"
   security_check_command: "examples/commands/security-check.md"  # Quick config check vs known threats
   security_audit_command: "examples/commands/security-audit.md"  # Full 6-phase security audit (score /100)
   security_threat_db: "examples/commands/resources/threat-db.yaml"  # Threat intelligence database (authors, skills, CVEs, patterns)
   security_update_threat_db: "examples/commands/update-threat-db.md"  # /update-threat-db — research & update threat database
-  security_cc_scanner: "guide/security-hardening.md:780"  # Claude Code Security (research preview) — Anthropic native vuln scanner, adversarial validation, patch suggestions
+  security_cc_scanner: "guide/security/security-hardening.md:780"  # Claude Code Security (research preview) — Anthropic native vuln scanner, adversarial validation, patch suggestions
   security_patcher_agent: "examples/agents/security-patcher.md"  # Agent: applies patches from security-auditor findings, human approval gate, Write/Edit tools
   security_gate_hook: "examples/hooks/bash/security-gate.sh"  # PreToolUse hook: blocks 7 vuln patterns at write time (SQLi, XSS, hardcoded secrets, eval, weak hash, cmd injection, path traversal)
-  security_pr_review_workflow: "guide/security-hardening.md:712"  # PR security review workflow — 3-agent pipeline, git hook integration
+  security_pr_review_workflow: "guide/security/security-hardening.md:712"  # PR security review workflow — 3-agent pipeline, git hook integration
   agent_validation_checklist: 5744  # Agent validation section in ultimate-guide.md
-  git_mcp_guide: "guide/mcp-servers-ecosystem.md:113"  # Git MCP server documentation
+  git_mcp_guide: "guide/ecosystem/mcp-servers-ecosystem.md:113"  # Git MCP server documentation
 
 # ════════════════════════════════════════════════════════════════
 # DECISION TREE (most important - en premier)
@@ -1102,10 +1102,10 @@ mcp:
   playwright: "browser automation / E2E"
   figma: "design file access, tokens, structure (official)"
   git_mcp: "version control automation (official Anthropic) - 12 tools for commits, branches, diffs, logs"
-  git_mcp_guide: "guide/mcp-servers-ecosystem.md:102"
+  git_mcp_guide: "guide/ecosystem/mcp-servers-ecosystem.md:102"
   git_mcp_tools: "git_status, git_log, git_diff, git_commit, git_add, git_reset, git_branch, git_create_branch, git_checkout, git_show, git_diff_unstaged, git_diff_staged"
   git_mcp_install: "uvx mcp-server-git --repository /path/to/repo"
-  git_mcp_decision_matrix: "guide/mcp-servers-ecosystem.md:212"  # Git MCP vs GitHub MCP vs Bash tool
+  git_mcp_decision_matrix: "guide/ecosystem/mcp-servers-ecosystem.md:212"  # Git MCP vs GitHub MCP vs Bash tool
   git_mcp_repo: "https://github.com/modelcontextprotocol/servers/tree/main/src/git"
   git_mcp_score: "8.5/10"
   git_mcp_status: "Early development (API subject to change)"
@@ -1120,7 +1120,7 @@ mcp:
   search_decision_tree: "grep (text) | ast-grep (structure) | Serena (symbols) | grepai (semantic)"
   search_tools_comparison: "guide/ultimate-guide.md:9845"
   search_tools_mastery_workflow: "guide/workflows/search-tools-mastery.md"
-  grep_vs_rag_history: "guide/architecture.md:232"
+  grep_vs_rag_history: "guide/core/architecture.md:232"
   ripgrep_native: "Grep tool (Claude Code built-in, ~20ms)"
   grepai_semantic: "Semantic search + call graph (Ollama-based, ~500ms)"
   grepai_benchmark:
@@ -1136,10 +1136,10 @@ mcp:
   config: "~/.claude.json (mcpServers field) or .mcp.json (project root)"
   tool_search: "lazy loading MCP tools (v2.1.7+) - 85% token reduction - auto:N threshold config"
   tool_search_config: "ENABLE_TOOL_SEARCH=auto|auto:N|true|false"
-  tool_search_deep_dive: "guide/architecture.md:284"
+  tool_search_deep_dive: "guide/core/architecture.md:284"
 
 # ════════════════════════════════════════════════════════════════
-# ARCHITECTURE INTERNALS - see guide/architecture.md
+# ARCHITECTURE INTERNALS - see guide/core/architecture.md
 # ════════════════════════════════════════════════════════════════
 architecture:
   master_loop: "while(tool_call) - no DAG, no classifier, no RAG"
@@ -1150,7 +1150,7 @@ architecture:
   philosophy: "less scaffolding, more model - trust Claude's reasoning"
   mcp_protocol: "JSON-RPC 2.0, treated as native tools"
   permissions: "interactive prompts + allow/deny rules + hooks"
-  deep_dive: "guide/architecture.md"
+  deep_dive: "guide/core/architecture.md"
 
 # ════════════════════════════════════════════════════════════════
 # COST OPTIMIZATION - see deep_dive.cost_optimization
@@ -1346,7 +1346,7 @@ ecosystem:
       focus: "Production-grade agentic coding guardrails (TDD, worktrees, manual commits)"
       academic: "Co-author 'Agentic Systems in Radiology' (ArXiv 2025)"
       alignment: "Validates patterns already documented in this guide"
-      guide_section: "guide/ai-ecosystem.md:1209"
+      guide_section: "guide/ecosystem/ai-ecosystem.md:1209"
   install_templates: "scripts/install-templates.sh"
   cowork:
     description: "Claude Code for non-developers (desktop app)"

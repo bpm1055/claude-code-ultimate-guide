@@ -16,7 +16,7 @@ tags: [guide, reference, workflows, agents, hooks, mcp, security]
 
 **Last updated**: January 2026
 
-**Version**: 3.32.2
+**Version**: 3.34.3
 
 ---
 
@@ -796,7 +796,7 @@ You: /exit
 Session ID: abc123def (saved for resume)
 ```
 
-> **Session Search Tools**: For fast session search, see [session-search.sh](../examples/scripts/session-search.sh) (bash, lightweight) and [cc-sessions.py](../examples/scripts/cc-sessions.py) (Python, advanced features: incremental index, partial ID resume, branch filter). Also: [Observability Guide](./observability.md#session-search--resume).
+> **Session Search Tools**: For fast session search, see [session-search.sh](../examples/scripts/session-search.sh) (bash, lightweight) and [cc-sessions.py](../examples/scripts/cc-sessions.py) (Python, advanced features: incremental index, partial ID resume, branch filter, and `discover` for automated pattern analysis — [GitHub](https://github.com/FlorianBruniaux/cc-sessions)). Also: [Observability Guide](./ops/observability.md#session-search--resume).
 
 **Common use cases**:
 
@@ -834,7 +834,7 @@ Claude: [Continues with full context of Day 1 work]
 - **Proactive context management**: Monitor with `/status` and use research-backed thresholds:
   - **< 70%**: Optimal — full reasoning capacity
   - **75%**: Auto-compact triggers — Claude Code compresses automatically
-  - **85%**: Manual handoff recommended — start a [session handoff](#session-handoffs) before auto-compact degrades quality ([research-backed](../architecture.md#auto-compaction))
+  - **85%**: Manual handoff recommended — start a [session handoff](#session-handoffs) before auto-compact degrades quality ([research-backed](../core/architecture.md#auto-compaction))
   - **95%**: Force handoff — severe quality degradation, reset immediately
 - **Session naming**: Use `/rename` to give sessions descriptive names — critical when running multiple sessions in parallel (see [Auto-Rename Pattern](#session-auto-rename) below)
 
@@ -883,6 +883,70 @@ Claude: [Resumes with Serena's persistent project understanding]
 > **💡 Pro tip**: Use `claude -c` as your default way to start Claude Code in active projects. This ensures you never lose context from previous sessions unless you explicitly want a fresh start with `claude` (no flags).
 
 > **Source**: [DeepTo Claude Code Guide - Context Resume Functions](https://cc.deeptoai.com/docs/en/best-practices/claude-code-comprehensive-guide)
+
+### Session Pattern Discovery (cc-sessions discover) {#session-pattern-discovery}
+
+Your session history is a data source. Every time you ask Claude to do the same kind of thing across multiple sessions, that's a signal: extract it as a skill, command, or CLAUDE.md rule and stop paying the context tax on every request.
+
+`cc-sessions discover` automates this analysis. It reads your session history, finds recurring patterns in user messages, and tells you what to extract.
+
+**Install**:
+
+```bash
+curl -sL https://raw.githubusercontent.com/FlorianBruniaux/cc-sessions/main/cc-sessions \
+  -o ~/.local/bin/cc-sessions && chmod +x ~/.local/bin/cc-sessions
+```
+
+**Two modes**:
+
+| Mode | How | Cost | Speed |
+|------|-----|------|-------|
+| N-gram (default) | Tokenizes messages, builds frequency index of 3-6 word phrases | Free, local | ~3s for 12 projects |
+| `--llm` | Deduplicates messages, sends batch to `claude --print` | Uses your subscription | ~15s |
+
+```bash
+# N-gram mode: all projects, last 90 days
+cc-sessions --all discover
+
+# Lower threshold, narrower window
+cc-sessions --all discover --since 60d --min-count 2 --top 15
+
+# Semantic analysis via claude --print
+cc-sessions --all discover --llm
+
+# JSON output for scripting
+cc-sessions --all discover --json | jq '.[] | select(.category == "skill")'
+```
+
+**Example output**:
+
+```
+  cc-sessions discover — 847 sessions · 12 project(s) · since 90d
+
+  📋  CLAUDE.md RULE
+  ────────────────────────────────────────────────────────────
+  write tests before implementation
+    234 sessions (28%) · 891 occurrences · score 0.416
+    → 3a72f1c4-...
+
+  🧩  SKILL
+  ────────────────────────────────────────────────────────────
+  security review authentication flow
+    71 sessions (8%) · 203 occurrences · score 0.084
+    → 9f1c3a22-...
+
+  ⚡  COMMAND
+  ────────────────────────────────────────────────────────────
+  generate prisma migration rollback script
+    18 sessions (2%) · 44 occurrences · score 0.021
+    → 44aab71c-...
+```
+
+**The 20% rule built into scoring**: patterns above 20% of sessions become `CLAUDE.md rule` suggestions (always load), 5-20% become `skill` suggestions (load on demand), below 5% become `command` suggestions (explicit invocation). The cross-project bonus (1.5×) prioritizes patterns that recur across different codebases — those are worth extracting even at lower frequency.
+
+See also: [§5.1 Understanding Skills](#51-understanding-skills) for the distinction between CLAUDE.md rules, skills, and commands, and the [20% rule](#the-20-rule) for the decision framework.
+
+**GitHub**: [FlorianBruniaux/cc-sessions](https://github.com/FlorianBruniaux/cc-sessions)
 
 ### Session Auto-Rename
 
@@ -1666,6 +1730,8 @@ When context gets high:
 - Loses all context
 - Use when changing topics
 
+> **"One Task, One Chat"** — mixing unrelated topics across turns degrades model accuracy by ~39%. Context accumulates noise ("context rot") that distorts judgment even when total token usage stays low. Use `/clear` aggressively between distinct tasks, not just when the context bar turns red.
+
 **Option 3: Summarize from here** (v2.1.32+)
 - Use `/rewind` (or `Esc + Esc`) to open the checkpoint list
 - Select a checkpoint and choose "Summarize from here"
@@ -2139,6 +2205,62 @@ response = client.messages.create(
 
 > Docs: [prompt caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
 
+#### How Claude Code Handles Caching Automatically
+
+Claude Code manages prompt caching without any configuration on your part. Understanding the mechanics helps you make decisions that keep cache hit rates high and costs low.
+
+**Cache prefix hierarchy**
+
+Every API call Claude Code makes structures content in this fixed order: `tools → system → messages`. Cache matching always starts from the beginning of this prefix. A stable tool list + stable CLAUDE.md + growing conversation history means the first two layers are almost always cache hits, while only new message turns require fresh computation.
+
+**The 20-block lookback — the long-session trap**
+
+Cache matching uses a bounded lookback of approximately 20 blocks. In a long session with many tool calls and exchanges, blocks from early in the conversation fall outside this window and become cache misses. Practical consequence: very long sessions gradually lose cache efficiency at the message layer. The fix is `/compact` — it compresses the conversation history into a single summary block, resetting the lookback window and restoring high hit rates.
+
+**Minimum token thresholds by model**
+
+A block must meet a minimum size to be eligible for caching. Blocks smaller than the threshold are never cached, regardless of how stable they are:
+
+| Model family | Minimum tokens |
+|---|---|
+| Claude Opus 4.6, Opus 4.5, Haiku 4.5 | 4,096 |
+| Claude Sonnet 4.6 | 2,048 |
+| Claude Sonnet 4.5, Sonnet 4, Sonnet 3.7, Opus 4.1, Opus 4 | 1,024 |
+| Claude Haiku 3.5, Haiku 3 | 2,048 |
+
+Short CLAUDE.md files (under ~1,000 tokens) may not be cached at all on Sonnet models. If cost optimization matters, make sure your system prompt crosses the threshold for your target model.
+
+**Tool result size and cache economics**
+
+Tool results land in the message history and stay there for the rest of the session. Every subsequent API call re-reads that history — at cache read price (0.1x), but still proportional to size. A `git status` output of 500 tokens costs 500 × 0.1x to read on every turn that follows. The same output at 50 tokens (filtered by a tool like RTK) costs 50 × 0.1x — 90% less, compounding across every turn in the session. Compact tool outputs are not just faster to process; they make the entire cached prefix cheaper to maintain.
+
+The same logic applies to cache writes: a smaller history prefix means cheaper initial writes (1.25x × fewer tokens).
+
+**Monitoring cache performance in your own pipelines**
+
+When building agents or pipelines on top of the Anthropic API, the response `usage` object exposes cache metrics directly:
+
+```python
+response = client.messages.create(...)
+
+print(response.usage.cache_creation_input_tokens)  # Tokens written to cache this request
+print(response.usage.cache_read_input_tokens)       # Tokens read from cache (hits)
+print(response.usage.input_tokens)                  # Non-cached input tokens
+```
+
+Calculate your hit rate as `cache_read / (cache_read + cache_creation)` across requests. A ratio above 0.8 means your prompt structure is working well. Low ratios usually mean content in the stable prefix is changing between requests — check for timestamps, random IDs, or dynamic content embedded in your system prompt.
+
+No dedicated monitoring tool exists specifically for Claude Code session cache metrics. Cost tracking via `ccusage` covers overall spend but does not break out cache hit rates. For cache-specific visibility in custom pipelines, parse the response fields above.
+
+**Practical rules**
+
+- Keep CLAUDE.md stable between sessions — edits invalidate the system cache one-shot, then it re-warms on the next request
+- Run `/compact` before the conversation gets very long, not after performance degrades
+- Avoid dynamic content in stable sections (dates, random values, per-request context)
+- Larger CLAUDE.md = more expensive cache write, but also more tokens saved per read — profitable after ~2 hits
+
+> Docs: [prompt caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
+
 #### Tracking Costs
 
 **Real-time tracking**:
@@ -2184,7 +2306,7 @@ ccusage --model-breakdown  # Cost by model (Sonnet/Opus/Haiku)
 - **Budget planning**: Set monthly spending targets
 - **Team analytics**: Aggregate costs across developers
 
-> For a full inventory of community cost trackers, session viewers, config managers, and alternative UIs, see [Third-Party Tools](./third-party-tools.md).
+> For a full inventory of community cost trackers, session viewers, config managers, and alternative UIs, see [Third-Party Tools](./ecosystem/third-party-tools.md).
 
 **Monthly tracking**:
 
@@ -3842,20 +3964,20 @@ When you use Claude Code, the following data leaves your machine:
 }
 ```
 
-> **Warning**: `permissions.deny` has known limitations. See [Security Hardening Guide](./security-hardening.md#known-limitations-of-permissionsdeny) for details.
+> **Warning**: `permissions.deny` has known limitations. See [Security Hardening Guide](./security/security-hardening.md#known-limitations-of-permissionsdeny) for details.
 
 **2. Never connect production databases** to MCP servers. Use dev/staging with anonymized data.
 
 **3. Use security hooks** to block reading of sensitive files (see [Section 7.4](#74-hooks-automating-workflows)).
 
-> **Full guide**: For complete privacy documentation including known risks, community incidents, and enterprise considerations, see [Data Privacy & Retention Guide](./data-privacy.md).
+> **Full guide**: For complete privacy documentation including known risks, community incidents, and enterprise considerations, see [Data Privacy & Retention Guide](./security/data-privacy.md).
 
 ## 2.11 Under the Hood
 
 > **Reading time**: 5 minutes
 > **Goal**: Understand the core architecture that powers Claude Code
 
-This section provides a summary of Claude Code's internal mechanisms. For the complete technical deep-dive with diagrams and source citations, see the [Architecture & Internals Guide](./architecture.md).
+This section provides a summary of Claude Code's internal mechanisms. For the complete technical deep-dive with diagrams and source citations, see the [Architecture & Internals Guide](./core/architecture.md).
 
 ### The Master Loop
 
@@ -4162,7 +4284,7 @@ Claude Code operates within a **200K token context window** (1M beta available v
 | Tool results | Variable |
 | Reserved for response | 40-45K tokens |
 
-When context fills up (~75% in VS Code, ~95% in CLI), older content is automatically summarized. However, **research shows this degrades quality** (50-70% performance drop on complex tasks). Use `/compact` proactively at logical breakpoints, or trigger **session handoffs at 85%** to preserve intent over compressed history. See [Session Handoffs](line 2140) and [Auto-Compaction Research](../architecture.md#auto-compaction).
+When context fills up (~75% in VS Code, ~95% in CLI), older content is automatically summarized. However, **research shows this degrades quality** (50-70% performance drop on complex tasks). Use `/compact` proactively at logical breakpoints, or trigger **session handoffs at 85%** to preserve intent over compressed history. See [Session Handoffs](line 2140) and [Auto-Compaction Research](../core/architecture.md#auto-compaction).
 
 ### Sub-Agent Isolation
 
@@ -4364,7 +4486,7 @@ Claude Code trusts the model's reasoning instead of building complex orchestrati
 
 | Topic | Where |
 |-------|-------|
-| Full architecture details | [Architecture & Internals Guide](./architecture.md) |
+| Full architecture details | [Architecture & Internals Guide](./core/architecture.md) |
 | Permission system | [Section 7 - Hooks](#7-hooks) |
 | MCP integration | [Section 8.6 - MCP Security](#86-mcp-security) |
 | Context management tips | [Section 2.2](#22-context-management) |
@@ -5034,7 +5156,7 @@ The `.claude/` folder is your project's Claude Code directory for memory, settin
 | Personal preferences | `CLAUDE.md` | ❌ Gitignore |
 | Personal permissions | `settings.local.json` | ❌ Gitignore |
 
-### 3.32.2 Version Control & Backup
+### 3.34.3 Version Control & Backup
 
 **Problem**: Without version control, losing your Claude Code configuration means hours of manual reconfiguration across agents, skills, hooks, and MCP servers.
 
@@ -6820,7 +6942,9 @@ Is this a repeatable workflow with steps?
                 └─ No → Just write it in CLAUDE.md as instructions
 ```
 
-> **See also**: [§2.7 Configuration Decision Guide](#27-configuration-decision-guide) for a broader decision tree covering all seven mechanisms (including Hooks, MCP, and CLAUDE.md vs rules).
+> **The 20% rule**: if an instruction applies to more than 20% of your conversations, put it in `CLAUDE.md` (always loaded). If it applies to fewer than 20%, make it a skill (loaded on demand). The difference matters for token efficiency: a skill's system prompt is injected only when Claude invokes it, while CLAUDE.md content counts against every request's context window.
+
+> **See also**: [§2.7 Configuration Decision Guide](#27-configuration-decision-guide) for a broader decision tree covering all seven mechanisms (including Hooks, MCP, and CLAUDE.md vs rules). To automate detection of what belongs in each category, use [`cc-sessions discover`](#session-pattern-discovery) — it applies this 20% threshold to your actual session history.
 
 #### Common Patterns
 
@@ -7855,7 +7979,7 @@ Design a fintech app with dark theme
 
 ### DevOps & SRE Guide
 
-For comprehensive DevOps/SRE workflows, see **[DevOps & SRE Guide](./devops-sre.md)**:
+For comprehensive DevOps/SRE workflows, see **[DevOps & SRE Guide](./ops/devops-sre.md)**:
 - **The FIRE Framework**: First Response → Investigate → Remediate → Evaluate
 - **Kubernetes troubleshooting**: Prompts by symptom (CrashLoopBackOff, OOMKilled, etc.)
 - **Incident response**: Solo and multi-agent patterns
@@ -7983,7 +8107,7 @@ cp -r /tmp/agent-skills/react-best-practices .claude/skills/
 - [Gen + Vercel: Agent Trust Hub partnership](https://www.prnewswire.com/news-releases/gen-and-vercel-partner-to-bring-independent-safety-verification-to-the-ai-skills-ecosystem-302691006.html)
 - [GitHub: vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)
 - [Platform Claude Docs: Skill Best Practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
-- See also: [AI Ecosystem Guide](./ai-ecosystem.md) for complementary tools
+- See also: [AI Ecosystem Guide](./ecosystem/ai-ecosystem.md) for complementary tools
 
 ---
 
@@ -8019,7 +8143,29 @@ Slash commands are shortcuts for common workflows.
 | `/simplify` | Review changed code and fix over-engineering |
 | `/batch` | Large-scale changes via parallel worktree agents |
 | `/insights` | Generate usage analytics report |
+| `/btw [question]` | Side question via ephemeral overlay — read-only, no tools, single response, doesn't pollute main history |
 | `/exit` | Exit Claude Code |
+
+### The /btw Command
+
+`/btw` lets you ask a quick side question while Claude is working without breaking your flow. Type `/btw what does this function return?` and get an instant response in an overlay — the main task keeps running uninterrupted.
+
+**How it works**: Claude spawns a temporary ephemeral agent with NO tools available. It cannot read files, run commands, or take actions. It responds once based solely on the current conversation context, then the overlay closes. The exchange never enters your main conversation history.
+
+**Key constraints:**
+- Read-only — no file access, no shell commands
+- Single response — no follow-up in the overlay
+- Context-only — answers from what's already in the conversation, not from disk
+- "Full context aware" means conversation context, not project files
+
+**When to use it:**
+- Quick clarification mid-task ("btw what's the default port for Postgres?")
+- Terminology check without stopping work
+- Sanity check on something Claude just mentioned
+
+**Syntax**: Start your message with `btw` (lowercase, no slash required) followed by your question. Claude Code detects the `btw` prefix and routes it to the ephemeral overlay agent.
+
+> Note: This feature (`btw-side-question`) was introduced around v2.0.73 and matured by v2.1.23. If you encounter issues, verify you're on a recent version.
 
 ### The /insights Command
 
@@ -9232,9 +9378,9 @@ exit 0
 
 Security hooks are critical for protecting your system.
 
-> **Advanced patterns**: For comprehensive security including Unicode injection detection, MCP config integrity verification, and CVE-specific mitigations, see [Security Hardening Guide](./security-hardening.md).
+> **Advanced patterns**: For comprehensive security including Unicode injection detection, MCP config integrity verification, and CVE-specific mitigations, see [Security Hardening Guide](./security/security-hardening.md).
 
-> **Claude Code Security (research preview)**: Anthropic offers a dedicated codebase vulnerability scanner that traces data flows across files, challenges findings internally before surfacing them (adversarial validation), and generates patch suggestions. Separate from the Security Auditor Agent above — waitlist access only. See [Security Hardening Guide → Claude Code as Security Scanner](./security-hardening.md#claude-code-as-security-scanner-research-preview).
+> **Claude Code Security (research preview)**: Anthropic offers a dedicated codebase vulnerability scanner that traces data flows across files, challenges findings internally before surfacing them (adversarial validation), and generates patch suggestions. Separate from the Security Auditor Agent above — waitlist access only. See [Security Hardening Guide → Claude Code as Security Scanner](./security/security-hardening.md#claude-code-as-security-scanner-research-preview).
 >
 > **Validated at scale**: In a March 2026 partnership with Mozilla, Claude Opus 4.6 scanned ~6,000 C++ files in Firefox's JS engine in two weeks, surfacing 22 confirmed vulnerabilities (14 high severity) — roughly one fifth of all high-severity Firefox CVEs fixed in 2025. Demonstrates the model's practical depth for production security work, well beyond surface-level linting.
 
@@ -9498,7 +9644,7 @@ echo '{"tool_name":"Read","tool_input":{"file_path":"$HOME/.env"}}' | \
 # Should exit 1 and show "Variable expansion detected"
 ```
 
-> **Cross-reference**: For full security hardening including CVE-specific mitigations and MCP config integrity, see [Security Hardening Guide](./security-hardening.md).
+> **Cross-reference**: For full security hardening including CVE-specific mitigations and MCP config integrity, see [Security Hardening Guide](./security/security-hardening.md).
 
 ## 7.5 Hook Examples
 
@@ -10162,7 +10308,7 @@ MCP Apps is built on the **Model Context Protocol** (open standard by Anthropic)
 - **SDK**: `@modelcontextprotocol/ext-apps` (npm)
 - **"Build once, deploy everywhere"**: Works in Claude, VS Code, ChatGPT, Goose
 
-→ **Deep dive**: See [guide/architecture.md:656](./architecture.md#mcp-extensions-apps-sep-1865) for technical architecture, security model, and SDK details.
+→ **Deep dive**: See [guide/architecture.md:656](./core/architecture.md#mcp-extensions-apps-sep-1865) for technical architecture, security model, and SDK details.
 
 #### Resources
 
@@ -10362,6 +10508,25 @@ grepai search "session creation logic"
 ```
 
 > **Source**: [grepai GitHub](https://github.com/yoanbernabeu/grepai)
+
+**Blast-Radius Pattern (pre-refactoring workflow):**
+
+Before modifying any widely-used function, run a dependency query to enumerate all affected call sites — then decide whether to proceed. This named workflow prevents cascading breakage in large codebases.
+
+```bash
+# Step 1: Map all callers before touching a function
+grepai trace callers "processPayment"
+# → Returns: 14 call sites across 7 files
+
+# Step 2: Check callees (what it depends on)
+grepai trace callees "processPayment"
+# → Returns: 3 downstream dependencies
+
+# Step 3: Decide scope before writing a single line
+# 14 callers + 3 deps = significant blast radius → plan the refactor first
+```
+
+Run this before starting any refactor touching a function used in 3+ places — not after hitting compile errors.
 
 ---
 
@@ -11564,16 +11729,35 @@ Install the companion slash commands for one-keystroke access (stored in `~/.cla
 # Copy or symlink to ~/.claude/commands/ccguide/ to install globally
 ```
 
+**Guide commands:**
+
 | Command | Example | Description |
 |---------|---------|-------------|
 | `/ccguide:search` | `/ccguide:search hooks` | Search by keyword |
 | `/ccguide:cheatsheet` | `/ccguide:cheatsheet hooks` | Cheatsheet (full or section) |
-| `/ccguide:digest` | `/ccguide:digest week` | What changed this week |
+| `/ccguide:digest` | `/ccguide:digest week` | What changed this week (guide + CC releases) |
 | `/ccguide:example` | `/ccguide:example code-reviewer` | Fetch a template |
 | `/ccguide:examples` | `/ccguide:examples agents` | List templates by category |
 | `/ccguide:release` | `/ccguide:release 2.1.59` | Release details |
 | `/ccguide:changelog` | `/ccguide:changelog 10` | Recent guide CHANGELOG |
 | `/ccguide:topics` | `/ccguide:topics` | Browse all categories |
+
+**Official Anthropic docs tracker** (MCP v1.1.0+):
+
+| Command | Description |
+|---------|-------------|
+| `/ccguide:init-docs` | Fetch official docs + store as local baseline (run once) |
+| `/ccguide:refresh-docs` | Re-fetch latest docs, update current snapshot (baseline unchanged) |
+| `/ccguide:diff-docs` | Compare baseline vs current — added/removed/modified pages, 0 network |
+| `/ccguide:search-docs <query>` | Search official Anthropic docs from local cache |
+| `/ccguide:daily` | **Daily briefing**: refresh + diff official docs + guide/CC digest |
+
+Typical workflow:
+```bash
+/ccguide:init-docs          # once — stores baseline + current in ~/.cache/claude-code-guide/
+# days later...
+/ccguide:daily              # every day — refresh + diff + digest in one shot
+```
 
 #### Custom agent
 
@@ -11585,7 +11769,7 @@ A `claude-code-guide` agent is included in `.claude/agents/claude-code-guide.md`
 
 Beyond the official servers listed above, the MCP ecosystem includes **validated community servers** that extend Claude Code's capabilities with specialized integrations.
 
-**📖 Complete Guide**: See **[MCP Servers Ecosystem](./mcp-servers-ecosystem.md)** for:
+**📖 Complete Guide**: See **[MCP Servers Ecosystem](./ecosystem/mcp-servers-ecosystem.md)** for:
 
 - **8 validated production-ready servers**: Playwright (Microsoft), Semgrep, Kubernetes (Red Hat), Context7, Linear, Vercel, Browserbase, MCP-Compose
 - **Evaluation framework**: How servers are validated (stars, releases, docs, tests, security)
@@ -11705,6 +11889,22 @@ serena          # large codebase
 
 Community tools (e.g. [cc-setup](https://github.com/rhuss/cc-setup)) are emerging to provide a TUI registry with per-project toggling and health checks — useful if you manage 8+ servers regularly.
 
+#### MCP Tool Search — Lazy-Loading at Scale
+
+Claude Code v4 introduced **MCP Tool Search**: instead of loading all MCP tool definitions at startup, tool schemas are fetched on-demand when Claude needs them.
+
+**Why it matters**: each MCP server injects its full tool schema into the context window. With a dozen servers, that's ~77,000 tokens consumed before you've written a single prompt.
+
+| Setup | Context used by tools |
+|-------|----------------------|
+| All tools loaded upfront | ~77,000 tokens |
+| MCP Tool Search enabled | ~8,700 tokens |
+| **Reduction** | **~85%** |
+
+Model accuracy on tool-selection tasks (measured on Opus 4): 49% → 74% (+25 points) when switching from full preload to lazy-loading. Auto-enables when MCP tools would consume >10% of the context window.
+
+**Practical implication**: you can now connect dozens of MCP servers without the "too many tools" accuracy penalty. The advice to keep global config minimal still applies for unrelated tools, but MCP Tool Search changes the calculus for large project-specific sets.
+
 ### CLI-Based MCP Configuration
 
 **Quick setup with environment variables**:
@@ -11730,7 +11930,7 @@ claude mcp add --help
 
 #### Security Principles
 
-Before implementing secrets management, understand the baseline requirements from [Security Hardening Guide](./security-hardening.md):
+Before implementing secrets management, understand the baseline requirements from [Security Hardening Guide](./security/security-hardening.md):
 
 - **Encryption at rest**: Secrets must be encrypted on disk (OS keychain > plaintext .env)
 - **Least privilege**: Use read-only credentials when possible
@@ -12648,7 +12848,7 @@ These tools solve different problems at different stages of the development cycl
 
 MCP servers extend Claude Code's capabilities, but they also expand its attack surface. Before installing any MCP server, especially community-created ones, apply the same security scrutiny you'd use for any third-party code dependency.
 
-> **CVE details & advanced vetting**: For documented CVEs (2025-53109/53110, 54135, 54136), MCP Safe List, and incident response procedures, see [Security Hardening Guide](./security-hardening.md).
+> **CVE details & advanced vetting**: For documented CVEs (2025-53109/53110, 54135, 54136), MCP Safe List, and incident response procedures, see [Security Hardening Guide](./security/security-hardening.md).
 
 ### Pre-Installation Checklist
 
@@ -13787,6 +13987,63 @@ We've made your experience faster and more personal:
 - Solution: Clean up commit history before generation (interactive rebase)
 - Better: Enforce commit message format with git hooks
 
+### Changelog Fragments: Per-PR Enforcement Pattern
+
+An alternative to generating release notes from commits is to capture the context _while implementing_, not at release time. The "changelog fragments" pattern replaces a shared `CHANGELOG.md` with one YAML file per PR, accumulated in `changelog/fragments/`, assembled automatically at release.
+
+**The core problem with commit-based approaches**: by the time you run `git log` to generate release notes, context is gone. The developer who fixed a race condition three weeks ago is the only one who understood the impact. The commit message says `fix SSE handling`.
+
+The fragments pattern solves this with 3 enforcement layers:
+
+**Layer 1 — CLAUDE.md rule**: Load a `git-workflow.md` rule that encodes the full fragment workflow. When a developer asks Claude Code to "create the PR," it reads the diff, infers type/scope/title, generates the YAML, validates it, and commits it as part of the branch. Claude handles it autonomously.
+
+```yaml
+# changelog/fragments/886-fix-visiochat-sse-race-condition.yml
+pr: 886
+type: fix
+scope: "visiochat"
+title: "Fix empty chat after starting activity due to SSE race condition"
+description: |
+  SSE workplan fires before AI stream completes, causing ChatWrapper to mount
+  with 0 messages. Added isStartingActivityRef guard and await response.text().
+breaking: false
+migration: false
+```
+
+**Layer 2 — `UserPromptSubmit` hook**: Detects PR creation intent and checks whether the fragment was already mentioned.
+
+```bash
+# Tier 0 enforcement in smart-suggest.sh
+if echo "$PROMPT_LC" | grep -qE '(create.*pr|make.*pr|pull.?request)'; then
+    if ! echo "$PROMPT_LC" | grep -qE '(changelog|fragment|skip-changelog)'; then
+        suggest "pnpm changelog:add" "REQUIRED before merge — fragment missing"
+    else
+        suggest "/pr" "PR creation with structured description"
+    fi
+fi
+```
+
+The hook is non-blocking and shows one suggestion inline, before Claude processes the prompt. If the fragment is already mentioned, the hook stays silent and suggests the normal PR command.
+
+**Layer 3 — CI gate**: Two independent GitHub Actions jobs. The first validates fragment existence and structure. The second checks that `migration: true` is set if the PR adds SQL migration files — this job runs regardless of bypass labels, because a "skip-changelog" PR can still add a migration that the deployment team needs to know about.
+
+**Assembly at release:**
+
+```bash
+pnpm changelog:assemble --version 1.8.0 [--dry-run]
+```
+
+Reads all fragments, groups by type, inserts a versioned section into `CHANGELOG.md` replacing a `## [Next Release]` placeholder, archives fragments to `changelog/fragments/released/{version}/`.
+
+**Benefits over commit-based generation:**
+- Zero merge conflicts (each fragment is a unique file per PR)
+- Context written at implementation time, not reconstructed later
+- DB migrations surfaced explicitly in every fragment
+- Bypass is auditable (closed label list visible in PR history)
+
+Full workflow documentation: [Changelog Fragments](./workflows/changelog-fragments.md)
+Hook reference implementation: [`examples/hooks/bash/smart-suggest.sh`](../examples/hooks/bash/smart-suggest.sh)
+
 ### Deployment Automation
 
 Claude Code can automate deployments to Vercel, GCP, and other platforms using stored credentials. The key is assembling three components: secret management, a deploy skill, and mandatory guardrails.
@@ -14784,8 +15041,8 @@ exit 0  # Allow
 - Use `--add-dir` to allow tool access to directories outside the current working directory
 - Manage thinking mode for cost efficiency:
   - Simple tasks: Alt+T to disable thinking → faster, cheaper
-  - Complex tasks: Leave thinking enabled (default in Opus 4.5)
-  - Note: Keywords like "ultrathink" no longer have effect
+  - Complex tasks: Leave thinking enabled (default in Opus 4.6)
+  - `ultrathink` keyword forces high effort for the next turn specifically (re-introduced in v2.1.68)
 - Set `cleanupPeriodDays` in config to prune old sessions automatically
 - Use `/compact` proactively when context reaches 70%
 - Block sensitive files with `permissions.deny` in settings.json
@@ -15207,7 +15464,7 @@ For comprehensive AI code attribution beyond Co-Authored-By, including:
 - git-ai checkpoint tracking
 - Team and enterprise compliance patterns
 
-See: [AI Traceability Guide](./ai-traceability.md)
+See: [AI Traceability Guide](./ops/ai-traceability.md)
 
 **Customize commit style in CLAUDE.md:**
 
@@ -15958,6 +16215,39 @@ You: "Fix typos in auth.ts, user.ts, and api.ts"
 # Single context load, multiple fixes
 ```
 
+**6. Pre-structural indexing:**
+
+Instead of letting Claude read files on demand throughout a session, pre-build a structural index of your codebase before starting. Claude queries the index (1 call) rather than reading files sequentially (5-10 reads per task).
+
+```bash
+# With CodeXRay (npx setup, SQLite-backed, 15 languages):
+npx codexray        # Interactive setup + first index build
+cxr watch &         # Background sync on file changes
+
+# Claude Code then queries the graph instead of reading files:
+# "find the payment module" → 1 graph query vs 5-10 file reads
+```
+
+Tools built on this pattern replace 5-10 file reads with 1 structured query — roughly 75% fewer tool calls for discovery tasks.
+
+**Dead code and circular dependency detection:**
+
+A structural index also enables analysis that file-by-file reading cannot surface efficiently:
+
+- **Dead code**: Functions defined but never called — safe to delete, reducing future context noise
+- **Circular dependencies**: Module A imports B imports A — architectural debt that silently inflates Claude's reasoning overhead
+- **Hotspots**: Files with the highest dependency count — prioritize for documentation or refactoring first
+
+```bash
+# With grepai (zero callers = dead code candidate):
+grepai trace callers "MyFunction"  # Empty result → safe to investigate for deletion
+
+# With a structural MCP tool (if available):
+# Tools like CodeXRay expose: codexray_deadcode, codexray_circular, codexray_hotspots
+```
+
+> **Community tools**: [CodeXRay](https://github.com/NeuralRays/codexray) (Tree-sitter + SQLite, 16 MCP tools, 15 languages) and [Claudette](https://github.com/nicmarti/Claudette) (Go binary, 4 languages) are early implementations of this approach. Both are alpha-stage as of March 2026 — use grepai for production workflows.
+
 ### Command Output Optimization with RTK
 
 **RTK (Rust Token Killer)** filters bash command outputs **before** they reach Claude's context, achieving 60-90% token reduction across git, testing, and development workflows. 446 stars, 38 forks, 700+ upvotes on r/ClaudeAI.
@@ -15977,10 +16267,10 @@ cargo install rtk
 curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/main/install.sh | bash
 
 # Verify installation
-rtk --version  # v0.16.0+
+rtk --version  # v0.28.0+
 ```
 
-**Proven Token Savings (Benchmarked on v0.2.0):**
+**Proven Token Savings (Benchmarked on real output):**
 
 | Command | Baseline | RTK | Reduction |
 |---------|----------|-----|-----------|
@@ -15993,7 +16283,7 @@ rtk --version  # v0.16.0+
 
 **Average: 60-90% token reduction depending on commands**
 
-**Key Features (v0.16.0):**
+**Key Features (v0.28.0):**
 
 ```bash
 # Git operations
@@ -16008,23 +16298,44 @@ rtk prisma migrate status # Migration status filtered
 
 # Python
 rtk python pytest        # Python test output condensed
+rtk mypy                 # Type errors grouped by file
 
 # Go
 rtk go test              # Go test results filtered
 
 # Rust
 rtk cargo test           # Cargo test output condensed
+rtk cargo nextest        # cargo-nextest failures-only output
 rtk cargo build          # Build output filtered
 rtk cargo clippy         # Lints grouped by severity
 
-# Project Setup & Learning
-rtk init                 # Initialize RTK in a project (hook-first install)
+# Cloud & Database
+rtk aws                  # AWS CLI output filtered
+rtk psql                 # psql query results condensed
+rtk docker               # Docker output condensed
+rtk docker compose       # docker compose support
+
+# Version control (extra)
+rtk gt                   # Graphite CLI support
+
+# File & Text Utilities
 rtk tree                 # Project structure condensed
+rtk wc                   # Compact word/line/byte counts
+rtk read file.ts         # File contents condensed
+
+# Project Setup & Learning
+rtk init                 # Initialize RTK with hook auto-install
+rtk init --global        # Install hook globally (settings.json auto-patch)
 rtk learn                # Interactive RTK learning
 
 # Analytics
 rtk gain                 # Token savings dashboard (SQLite tracking)
+rtk gain -p              # Per-project token savings breakdown
 rtk discover             # Find missed optimization opportunities
+
+# Hook & Config Management
+rtk rewrite <cmd>        # Single source of truth for hook rewrites
+rtk verify               # Validate TOML filter rules
 ```
 
 **Real-World Impact:**
@@ -16036,11 +16347,30 @@ rtk discover             # Find missed optimization opportunities
 - Savings: 109K tokens (72.6% reduction)
 ```
 
+**TOML Filter DSL (v0.28.0 — add filters without writing Rust):**
+
+RTK now supports a declarative filter engine via TOML config. You can add custom output filters for any command without touching Rust code.
+
+```toml
+# .rtk/filters.toml (project-local) or ~/.config/rtk/filters.toml (user-global)
+
+[[filters]]
+match_command = "my-build-tool"
+strip_lines_matching = "^(DEBUG|TRACE|INFO):"
+max_lines = 50
+```
+
+Lookup chain: `.rtk/filters.toml` (project) → `~/.config/rtk/filters.toml` (global) → 33 built-in filters (brew, poetry, dotnet, swift, uv, tofu, ansible, helm, etc.)
+
+Available primitives: `strip_ansi`, `replace`, `match_output`, `strip/keep_lines_matching`, `truncate_lines_at`, `head/tail_lines`, `max_lines`, `on_empty`
+
+Debug: `RTK_NO_TOML=1` bypasses all TOML filters. `RTK_TOML_DEBUG=1` shows which filter fires.
+
 **Integration Strategies:**
 
 1. **Hook-first install** (recommended):
    ```bash
-   rtk init  # Sets up PreToolUse hook automatically
+   rtk init --global  # Sets up PreToolUse hook + patches settings.json automatically
    ```
 
 2. **CLAUDE.md instruction** (manual wrapper):
@@ -16062,6 +16392,22 @@ rtk discover             # Find missed optimization opportunities
    - Template: `examples/hooks/bash/rtk-auto-wrapper.sh`
    - PreToolUse hook intercepts bash commands
    - Applies RTK wrapper when beneficial
+
+**Configuration Options:**
+
+```toml
+# ~/.config/rtk/config.toml
+exclude_commands = ["my-interactive-tool", "fzf"]  # Never rewrite these
+```
+
+**Migration Note (v0.25.0+):**
+
+After upgrading from v0.24.0 or earlier, run `rtk init --global` to install the new thin-delegator hook. The old hook still works, but won't pick up new command mappings automatically.
+
+```bash
+cargo install rtk          # Upgrade binary
+rtk init --global          # Replace hook with thin delegator
+```
 
 **Recommendation:**
 
@@ -16351,7 +16697,7 @@ Time savings from effective Claude Code usage typically far outweigh API costs f
 
 ## 9.14 Development Methodologies
 
-> **Full reference**: [methodologies.md](./methodologies.md) | **Hands-on workflows**: [workflows/](./workflows/)
+> **Full reference**: [methodologies.md](./core/methodologies.md) | **Hands-on workflows**: [workflows/](./workflows/)
 
 15 structured development methodologies have emerged for AI-assisted development (2025-2026). This section provides quick navigation; detailed workflows are in dedicated files.
 
@@ -16362,6 +16708,7 @@ Time savings from effective Claude Code usage typically far outweigh API costs f
 ├─ "I want to spec before code" ─────→ workflows/spec-first.md
 ├─ "I need to plan architecture" ────→ workflows/plan-driven.md
 ├─ "I'm iterating on something" ─────→ workflows/iterative-refinement.md
+├─ "Feasibility is unknown" ─────────→ workflows/rpi.md
 └─ "I need methodology theory" ──────→ methodologies.md
 ```
 
@@ -16385,7 +16732,7 @@ Time savings from effective Claude Code usage typically far outweigh API costs f
 | Implementation | TDD, Eval-Driven, Multi-Agent | ⭐⭐⭐ Core workflows |
 | Optimization | Iterative Loops, Prompt Engineering | ⭐⭐⭐ Foundation |
 
-→ Full descriptions with examples: [methodologies.md](./methodologies.md)
+→ Full descriptions with examples: [methodologies.md](./core/methodologies.md)
 
 ### SDD Tools (External)
 
@@ -17538,7 +17885,7 @@ Don't jump to 10 instances. Scale progressively with validation gates.
 | **multiclaude** | Self-hosted spawner | Teams needing on-prem/airgap |
 | **Entire CLI** | Governance + handoffs | Sequential workflows with compliance |
 
-> **Entire CLI** (Feb 2026): Alternative to parallel orchestration, focuses on **sequential agent handoffs** with governance layer (approval gates, audit trails). Useful for compliance-critical workflows (SOC2, HIPAA) or multi-agent handoffs (Claude → Gemini). See [AI Ecosystem Guide](./ai-ecosystem.md#entire-cli-governance-first-orchestration) for details.
+> **Entire CLI** (Feb 2026): Alternative to parallel orchestration, focuses on **sequential agent handoffs** with governance layer (approval gates, audit trails). Useful for compliance-critical workflows (SOC2, HIPAA) or multi-agent handoffs (Claude → Gemini). See [AI Ecosystem Guide](./ecosystem/ai-ecosystem.md#entire-cli-governance-first-orchestration) for details.
 
 **Success criteria**: Sustained 3-5% productivity gain over 3 months.
 
@@ -17566,7 +17913,7 @@ Track multi-instance workflows with metrics to validate ROI.
 ./examples/scripts/session-stats.sh --project backend --range 30d
 ```
 
-**See also**: [Session Observability Guide](./observability.md)
+**See also**: [Session Observability Guide](./ops/observability.md)
 
 #### Warning Signs (Rollback Triggers)
 
@@ -17658,7 +18005,7 @@ New feature request
 **Related guides**:
 - [Git worktrees command](../examples/commands/git-worktree.md)
 - [Database branch setup workflow](../examples/workflows/database-branch-setup.md)
-- [Session observability](./observability.md)
+- [Session observability](./ops/observability.md)
 - [Cost optimization](#913-cost-optimization-strategies)
 
 **Community discussions**:
@@ -20107,7 +20454,7 @@ This section is a quick overview. For complete guide:
 **Related patterns**:
 - [§9.17 Multi-Instance Workflows](#917-scaling-patterns-multi-instance-workflows) — Manual parallel coordination
 - [§4.3 Sub-Agents](#43-sub-agents) — Single-agent task delegation
-- [AI Ecosystem: Beads Framework](./ai-ecosystem.md) — Alternative orchestration (Gas Town)
+- [AI Ecosystem: Beads Framework](./ecosystem/ai-ecosystem.md) — Alternative orchestration (Gas Town)
 
 **Official sources**:
 - [Introducing Claude Opus 4.6](https://www.anthropic.com/news/claude-opus-4-6) (Anthropic, Feb 2026)
@@ -20383,7 +20730,7 @@ This gives you persistent sessions that survive closing your laptop. Combine 6-8
 
 ### Security Considerations
 
-> **Full threat model**: [Security Hardening Guide: Remote Control Security](./security-hardening.md#remote-control-security)
+> **Full threat model**: [Security Hardening Guide: Remote Control Security](./security/security-hardening.md#remote-control-security)
 
 **Quick summary:**
 
@@ -21932,7 +22279,7 @@ Use when: You need to quickly understand a new codebase or create audio overview
 
 **When to use**: Joining new team, reviewing unfamiliar codebase, onboarding prep.
 
-> **💡 MCP Integration Available**: You can now query NotebookLM notebooks directly from Claude Code using the NotebookLM MCP server. See [ai-ecosystem.md § 4.1](./ai-ecosystem.md#41-notebooklm-mcp-integration) for installation and usage guide.
+> **💡 MCP Integration Available**: You can now query NotebookLM notebooks directly from Claude Code using the NotebookLM MCP server. See [ai-ecosystem.md § 4.1](./ecosystem/ai-ecosystem.md#41-notebooklm-mcp-integration) for installation and usage guide.
 
 ### Presentation Pipeline
 
@@ -22014,7 +22361,7 @@ claude
 
 ---
 
-> **📖 Deep Dive**: For detailed integration patterns, ready-to-use prompts, and tool comparisons, see the [complete AI Ecosystem guide](./ai-ecosystem.md).
+> **📖 Deep Dive**: For detailed integration patterns, ready-to-use prompts, and tool comparisons, see the [complete AI Ecosystem guide](./ecosystem/ai-ecosystem.md).
 
 ### For Non-Developers: Claude Cowork
 
@@ -22031,7 +22378,7 @@ If you work with non-technical team members, **Cowork** brings Claude's agentic 
 **Collaboration pattern**: Developers use Claude Code for specs → PMs use Cowork for stakeholder summaries. Shared context via `~/Shared/CLAUDE.md`.
 
 > **Availability**: Pro ($20/mo) or Max ($100-200/mo) subscribers, macOS only (Jan 2026).
-> See [AI Ecosystem Section 9](./ai-ecosystem.md#9-claude-cowork-research-preview) for details.
+> See [AI Ecosystem Section 9](./ecosystem/ai-ecosystem.md#9-claude-cowork-research-preview) for details.
 
 ## Further Reading
 
@@ -22810,4 +23157,4 @@ We'll evaluate and add it to this section if it meets quality criteria.
 
 **Contributions**: Issues and PRs welcome.
 
-**Last updated**: January 2026 | **Version**: 3.32.2
+**Last updated**: January 2026 | **Version**: 3.34.3

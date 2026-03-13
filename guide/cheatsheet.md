@@ -12,7 +12,7 @@ tags: [cheatsheet, reference]
 
 **Written with**: Claude (Anthropic)
 
-**Version**: 3.32.2 | **Last Updated**: February 2026
+**Version**: 3.34.3 | **Last Updated**: February 2026
 
 ---
 
@@ -39,6 +39,7 @@ tags: [cheatsheet, reference]
 | `/mobile` | Get Claude mobile app download links |
 | `/fast` | Toggle fast mode (2.5x speed, 6x cost) |
 | `/voice` | Toggle voice input (hold Space to speak, release to send) |
+| `/btw [question]` | Side question overlay — read-only ephemeral agent, no history pollution, no tools |
 | `/loop [interval] [prompt]` | Run a prompt on repeat (ex: `/loop 5m check the deploy`, default 10m) |
 | `/stats` | Usage graph, favorite model, streak |
 | `/rename [name]` | Name or rename the current session |
@@ -221,7 +222,7 @@ Model: Sonnet | Ctx: 89.5k | Cost: $2.11 | Ctx(u): 56.0%
 | **Sub-agents** | Isolated context, max depth=1 |
 | **Philosophy** | "Less scaffolding, more model" — trust Claude's reasoning |
 
-**Deep dive**: [Architecture & Internals](./architecture.md)
+**Deep dive**: [Architecture & Internals](./core/architecture.md)
 
 ---
 
@@ -607,6 +608,24 @@ where.exe claude; claude doctor; claude mcp list
 
 ---
 
+## Search Tools Quick Reference
+
+Quick decision (5 seconds): exact text → `rg` | exact name → `rg`/Serena | concept → grepai | structure → ast-grep
+
+| Task | Tool | Command |
+|------|------|---------|
+| "Find TODO comments" | `rg` | `rg "TODO"` |
+| "Find auth code" | `grepai` | `grepai search "authentication"` |
+| "Who calls login?" | `grepai` | `grepai trace callers "login"` |
+| "Get file structure" | `Serena` | `serena get_symbols_overview` |
+| "Async without try/catch" | `ast-grep` | `ast-grep "async function $F"` |
+
+Speed: `rg` (~20ms) → Serena (~100ms) → ast-grep (~200ms) → grepai (~500ms)
+
+> Full workflows: [workflows/search-tools-mastery.md](./workflows/search-tools-mastery.md)
+
+---
+
 ## Resources
 
 - **Official docs**: [docs.anthropic.com/claude-code](https://docs.anthropic.com/en/docs/claude-code)
@@ -620,4 +639,4 @@ where.exe claude; claude doctor; claude mcp list
 
 **Author**: Florian BRUNIAUX | [@Méthode Aristote](https://methode-aristote.fr) | Written with Claude
 
-*Last updated: February 2026 | Version 3.32.2*
+*Last updated: February 2026 | Version 3.34.3*

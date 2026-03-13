@@ -38,16 +38,16 @@ flowchart TD
     style K fill:#B8B8B8,color:#333
 
     click A href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#12-first-workflow" "User Input"
-    click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Build System Prompt"
-    click C href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Claude API Call"
-    click D href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Response contains tool calls?"
-    click E href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Parse tool calls"
-    click F href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Execute each tool"
-    click G href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Append tool results"
-    click H href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Extract text response"
+    click B href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Build System Prompt"
+    click C href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Claude API Call"
+    click D href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Response contains tool calls?"
+    click E href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Parse tool calls"
+    click F href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Execute each tool"
+    click G href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Append tool results"
+    click H href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Extract text response"
     click I href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#12-first-workflow" "Display to User"
-    click J href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "User sends next message?"
-    click K href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#1-the-master-loop" "Session ends"
+    click J href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "User sends next message?"
+    click K href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#1-the-master-loop" "Session ends"
 ```
 
 <details>
@@ -70,13 +70,13 @@ Tool calls?                          │
 
 </details>
 
-> **Source**: [Architecture: Master Loop](../architecture.md#master-loop) — Line ~72
+> **Source**: [Architecture: Master Loop](../core/architecture.md#master-loop) — Line ~72
 
 ---
 
 ### Tool Categories & Selection
 
-Claude Code has 5 tool categories, each optimized for different operations. Understanding which tool Claude chooses (and why) helps you write instructions that guide better tool selection.
+Claude Code has 6 tool categories, each optimized for different operations. Understanding which tool Claude chooses (and why) helps you write instructions that guide better tool selection.
 
 ```mermaid
 flowchart TD
@@ -85,6 +85,7 @@ flowchart TD
     ROOT --> EXECUTE
     ROOT --> WEB
     ROOT --> WORKFLOW
+    ROOT --> CONTROL
 
     subgraph READ["📖 Read Tools"]
         R1[Glob<br/>Find files by pattern]
@@ -114,6 +115,12 @@ flowchart TD
         WF2[NotebookEdit<br/>Jupyter notebooks]
     end
 
+    subgraph CONTROL["🎛️ Control Flow Tools"]
+        CF1[EnterPlanMode / ExitPlanMode<br/>Toggle plan mode]
+        CF2[EnterWorktree / ExitWorktree<br/>Worktree navigation]
+        CF3[AskUserQuestion<br/>Request human input]
+    end
+
     style ROOT fill:#E87E2F,color:#fff
     style R1 fill:#6DB3F2,color:#fff
     style R2 fill:#6DB3F2,color:#fff
@@ -128,21 +135,28 @@ flowchart TD
     style WB2 fill:#7BC47F,color:#333
     style WF1 fill:#B8B8B8,color:#333
     style WF2 fill:#B8B8B8,color:#333
+    style CF1 fill:#B8B8B8,color:#333
+    style CF2 fill:#B8B8B8,color:#333
+    style CF3 fill:#B8B8B8,color:#333
 
-    click ROOT href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Claude Code Tools"
-    click R1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Glob — Find files by pattern"
-    click R2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Grep — Search file content"
-    click R3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Read — Read file content"
-    click R4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "LS — List directory"
-    click W1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Write — Create new file"
-    click W2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Edit — Modify existing file"
-    click W3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "MultiEdit — Batch modifications"
-    click E1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "Bash — Shell commands"
+    click ROOT href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Claude Code Tools"
+    click R1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Glob — Find files by pattern"
+    click R2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Grep — Search file content"
+    click R3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Read — Read file content"
+    click R4 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "LS — List directory"
+    click W1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Write — Create new file"
+    click W2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Edit — Modify existing file"
+    click W3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "MultiEdit — Batch modifications"
+    click E1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Bash — Shell commands"
     click E2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md#41-what-are-agents" "Task — Spawn sub-agent"
-    click WB1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "WebSearch"
-    click WB2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "WebFetch"
-    click WF1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "TodoWrite — Task list"
-    click WF2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/architecture.md#2-the-tool-arsenal" "NotebookEdit — Jupyter"
+    click WB1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "WebSearch"
+    click WB2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "WebFetch"
+    click WF1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "TodoWrite — Task list"
+    click WF2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "NotebookEdit — Jupyter"
+    click CONTROL href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "Control Flow Tools"
+    click CF1 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "EnterPlanMode / ExitPlanMode"
+    click CF2 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "EnterWorktree / ExitWorktree"
+    click CF3 href "https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/core/architecture.md#2-the-tool-arsenal" "AskUserQuestion"
 ```
 
 <details>
@@ -154,11 +168,14 @@ WRITE:    Write (create), Edit (modify), MultiEdit (batch)
 EXECUTE:  Bash (shell), Task (sub-agent)  ← most powerful/risky
 WEB:      WebSearch, WebFetch
 WORKFLOW: TodoWrite, NotebookEdit
+CONTROL:  EnterPlanMode/ExitPlanMode, EnterWorktree/ExitWorktree, AskUserQuestion
 ```
 
 </details>
 
-> **Source**: [Architecture: Tools](../architecture.md#tools) — Line ~213
+> **Source**: [Architecture: Tools](../core/architecture.md#tools) — Line ~213
+
+> *Simplified — additional tools available. See [Architecture: Tool Arsenal](../core/architecture.md#tools) for the full list.*
 
 ---
 
@@ -204,7 +221,7 @@ System prompt assembly order:
 
 </details>
 
-> **Source**: [Architecture: System Prompt](../architecture.md#system-prompt) — Line ~354
+> **Source**: [Architecture: System Prompt](../core/architecture.md#system-prompt) — Line ~354
 
 ---
 
@@ -257,4 +274,4 @@ Parent receives: text string
 
 </details>
 
-> **Source**: [Architecture: Sub-Agents](../architecture.md#sub-agents) — Line ~444
+> **Source**: [Architecture: Sub-Agents](../core/architecture.md#sub-agents) — Line ~444
