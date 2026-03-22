@@ -28,11 +28,12 @@ tags: [guide, workflows]
 8. [Embracing AI Tools (Pattern: Avoidant)](#embracing-ai-tools)
 9. [Optimizing Your Flow (Pattern: Augmented)](#optimizing-your-flow)
 10. [Case Study: Hybrid Learning Principles](#case-study-hybrid-learning-principles)
-11. [30-Day Progression Plan](#30-day-progression-plan)
-12. [For Tech Leads & Engineering Managers](#for-tech-leads--engineering-managers)
-13. [Red Flags Checklist](#red-flags-checklist)
-14. [Sources & Research](#sources--research)
-15. [See Also](#see-also)
+11. [Where Are You on the Agent Adoption Curve?](#where-are-you-on-the-agent-adoption-curve)
+12. [30-Day Progression Plan](#30-day-progression-plan)
+13. [For Tech Leads & Engineering Managers](#for-tech-leads--engineering-managers)
+14. [Red Flags Checklist](#red-flags-checklist)
+15. [Sources & Research](#sources--research)
+16. [See Also](#see-also)
 
 ---
 
@@ -102,6 +103,8 @@ Term coined by [Andrej Karpathy](https://x.com/karpathy/status/18861921848081493
 
 > **Related**: For context management strategies that prevent vibe coding chaos, see [Anti-Pattern: Context Overload](./ultimate-guide.md#anti-pattern-context-overload) in the main guide (§9.8).
 
+**At team scale**, vibe coding accumulates into what some practitioners call *comprehension debt* (an emerging term, 2025-2026): the growing gap between how much code exists in a system and how much any human genuinely understands. Unlike technical debt, which surfaces through slow builds and tangled dependencies, comprehension debt breeds false confidence — velocity looks fine, tests are green, and the reckoning arrives at the worst possible moment, usually during an incident or an audit.
+
 ---
 
 ## The Reality of AI Productivity
@@ -150,6 +153,8 @@ The pattern: **AI excels at well-defined, repeatable tasks**. It struggles with 
 - Skipping code review because "AI wrote it"
 
 The difference isn't the tool — it's the organizational discipline around it.
+
+**The review bottleneck has inverted.** When code was expensive to produce, senior engineers could review it faster than juniors could write it — review was a quality gate. AI flips this: a junior can now generate code faster than a senior can critically audit it. The rate-limiting factor that historically kept review meaningful has been removed. What used to be a quality gate is now a throughput problem. Teams that don't account for this end up rubber-stamping AI-generated code at scale.
 
 > **For team leads**: If you're responsible for structuring this — onboarding, policies, growth measurement — jump to [§12 For Tech Leads & Engineering Managers](#for-tech-leads--engineering-managers).
 
@@ -815,6 +820,35 @@ The combination of **human accountability + AI practice** beats either alone. Th
 
 ---
 
+## Where Are You on the Agent Adoption Curve?
+
+> **Audience**: Developers already using Claude Code who want to gauge their current sophistication — not beginners starting from scratch (use the 30-Day Plan below for that).
+
+Before picking a learning path, locate yourself. Nicolas Martignole (Principal Engineer at Back Market) proposed a 6-level maturity scale in March 2026 that maps well onto practical Claude Code usage. The levels below are adapted from his framework, with the upper half (3-5) being where most of this guide's content lives.
+
+| Level | Profile | Signal |
+|-------|---------|--------|
+| **0** | Never used AI dev tools | Using chatbots at most, nothing integrated in workflow |
+| **1** | Editor autocomplete | Cursor, Copilot, Windsurf — but no agent-level usage |
+| **2** | External LLM, copy-paste | ChatGPT or Claude in browser, pasting code manually into editor |
+| **3** | Claude Code basic user | Running Plan mode, simple prompts, reviewing everything manually |
+| **4** | Stage delegator | Handing off full development stages (research, architecture, implementation, tests) — writing less than 10% of code manually |
+| **5** | Context engineer | Designing CLAUDE.md, sub-agents, custom skills, MCP servers — building the environment for agents to operate in |
+| **6** | Orchestrator | Coordinating agent graphs, reinforcement loops, distributed agent systems |
+
+**Quick self-placement questions:**
+
+- Can you leave Claude Code running on a feature branch for 20+ minutes without checking in? → Level 4+
+- Do you write CLAUDE.md before starting a project, not after? → Level 5
+- Have you built a custom agent or hook in the last month? → Level 5-6
+- Is your primary output prompts and system design, not code? → Level 6
+
+If you landed at Level 3 or below: the 30-Day Plan below is the right path. If you're at Level 4-6: skip to [Context Engineering](../core/context-engineering.md), [Agent Patterns](../../examples/agents/), or [MCP Ecosystem](../ecosystem/mcp-servers-ecosystem.md).
+
+> Source: Nicolas Martignole, ["Découvrir les niveaux de maturité de l'adoption des coding agents"](https://www.touilleur-express.fr/2026/03/17/decouvrir-les-niveaux-de-maturite-de-ladoption-des-coding-agents), Le Touilleur Express, March 2026. Adapted and extended.
+
+---
+
 ## 30-Day Progression Plan
 
 A concrete path from wherever you are to augmented developer.
@@ -1003,6 +1037,18 @@ Warning Signs
 ☐ Debt accumulation monitored (not just feature throughput)
 ☐ Juniors can explain code they shipped last sprint
 ```
+
+---
+
+### Regulatory Exposure (Regulated Industries)
+
+For teams shipping AI-generated code into healthcare, finance, or government systems, comprehension debt is no longer just a quality risk — it is a compliance risk.
+
+The **EU AI Act** classifies healthcare AI systems as high-risk, with mandatory human oversight requirements active since August 2, 2025 for general-purpose AI models and fully applicable from August 2, 2026 (medical devices: August 2027). Non-compliance carries penalties up to 6% of global annual turnover. The requirement for "meaningful human oversight" of AI outputs creates an implicit obligation to actually understand what your team is shipping — "the model wrote it" does not satisfy the standard.
+
+The **FDA's January 2025 draft guidance** for AI-enabled device software functions mandates AI Bill of Materials (AIBOMs), data lineage documentation, and post-market monitoring plans. The June 2025 cybersecurity guidance adds third-party component transparency requirements. A team that cannot explain the behavior of AI-generated code in a medical device submission is not compliant with this guidance.
+
+**Practical consequence for tech leads**: If your team is building in a regulated space, the "explain this" gate in code review is not a learning exercise — it is a documentation requirement. Reviewers who rubber-stamp AI-generated code are creating liability, not just technical risk. This is worth stating explicitly in your team AI policy.
 
 ---
 

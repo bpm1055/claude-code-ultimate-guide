@@ -10,6 +10,8 @@ tags: [mcp, reference, integration]
 
 This guide covers validated community MCP servers beyond the official Anthropic servers. All servers listed have been evaluated for production readiness, maintenance activity, and security.
 
+> **Not sure whether to use an MCP server or a CLI tool?** See the [MCP vs CLI Decision Guide](./mcp-vs-cli.md) for a full breakdown of tradeoffs, a decision matrix, and guidance by situation.
+
 ## Table of Contents
 
 - [Official vs Community Servers](#official-vs-community-servers)
@@ -908,6 +910,8 @@ Result: Official Python SDK docs + example code for streaming
 - **Official Site**: https://context7.com
 - **LobeHub Registry**: https://lobehub.com/mcp/upstash-context7
 
+**ctx7 CLI companion**: Context7 also ships a CLI (`npx ctx7`) that handles skill discovery and MCP setup from the terminal. `ctx7 skills suggest` auto-detects project dependencies and recommends matching skills; `ctx7 setup --claude` runs a wizard that configures MCP or CLI+Skills mode automatically. See §5.5 of the ultimate guide for the full workflow.
+
 ---
 
 ### Project Management
@@ -1074,6 +1078,29 @@ proxy:
 - **GitHub**: https://github.com/phildougherty/mcp-compose
 - **Docker Compose Docs**: https://docs.docker.com/compose/
 - **MCP Protocol Spec**: https://modelcontextprotocol.io
+
+---
+
+#### Packmind
+
+**Community tool** for distributing engineering standards as AI context across multiple agents and repositories. Exposes an MCP server for creating and managing playbook standards directly from Claude Code (or any MCP-capable agent).
+
+**Use Case**: Engineering team maintains one playbook; Packmind MCP server lets Claude Code propose new standards or update existing ones during a session without leaving the editor.
+
+**Key Features**:
+
+| Capability | Details |
+|------------|---------|
+| Standards Creation | Create/update playbook entries via MCP tools |
+| Multi-Agent Output | Generates CLAUDE.md, .cursor/rules, Copilot instructions from one source |
+| Knowledge Ingestion | Pull context from GitHub, Slack, Jira, GitLab, Confluence, Notion via their MCP servers |
+| Self-hosted | Docker/Kubernetes, Apache-2.0 CLI |
+
+**Resources**:
+- **GitHub**: https://github.com/PackmindHub/packmind
+- **Demo use cases**: https://github.com/PackmindHub/demo-use-case-skills
+
+> **Cross-ref**: Full tool evaluation in [third-party-tools.md — Engineering Standards Distribution](./third-party-tools.md#engineering-standards-distribution).
 
 ---
 

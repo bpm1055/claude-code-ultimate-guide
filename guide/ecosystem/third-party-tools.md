@@ -16,12 +16,13 @@ tags: [reference, integration, plugin]
 2. [Token & Cost Tracking](#token--cost-tracking)
 3. [Session Management](#session-management)
 4. [Configuration Management](#configuration-management)
-5. [Hook Utilities](#hook-utilities)
-6. [Alternative UIs](#alternative-uis)
-7. [Multi-Agent Orchestration](#multi-agent-orchestration)
-8. [Plugin Ecosystem](#plugin-ecosystem)
-9. [Known Gaps](#known-gaps)
-10. [Recommendations by Persona](#recommendations-by-persona)
+5. [Engineering Standards Distribution](#engineering-standards-distribution)
+6. [Hook Utilities](#hook-utilities)
+7. [Alternative UIs](#alternative-uis)
+8. [Multi-Agent Orchestration](#multi-agent-orchestration)
+9. [Plugin Ecosystem](#plugin-ecosystem)
+10. [Known Gaps](#known-gaps)
+11. [Recommendations by Persona](#recommendations-by-persona)
 
 ---
 
@@ -325,6 +326,39 @@ A CLI that scaffolds pre-configured Claude Code setups with hooks, commands, sta
 **Limitations**: Opinionated configuration choices. Some features require a premium tier. Does not read existing config (scaffolds from scratch).
 
 > **Cross-ref**: For manual Claude Code configuration, see [ultimate-guide.md Section 4](./ultimate-guide.md) (CLAUDE.md, settings, hooks, commands).
+
+---
+
+## Engineering Standards Distribution
+
+Tools that solve the organizational-scale problem: keeping engineering standards in sync across dozens of repositories and multiple AI coding agents.
+
+> **Context**: The guide covers CLAUDE.md authorship at the project level (Section 3 in the Ultimate Guide). The tools below address the next level — distributing and maintaining those standards across an entire engineering org.
+
+### Packmind
+
+An open-source "ContextOps" platform (Packmind's term for treating engineering context as a managed artifact with a lifecycle). Captures standards once, distributes as AI-readable context to every AI coding agent the team uses.
+
+| Attribute | Details |
+|-----------|---------|
+| **Source** | [GitHub: PackmindHub/packmind](https://github.com/PackmindHub/packmind) |
+| **Install** | `npx @packmind/cli init` |
+| **License** | Apache-2.0 (CLI) — SaaS layer at packmind.com (pricing unspecified) |
+| **Self-hosted** | Docker / Kubernetes |
+| **Language** | TypeScript |
+
+**Key features**:
+
+- Single playbook → generates `CLAUDE.md` + slash commands + skills for Claude Code, `.cursor/rules/*.mdc` for Cursor, `.github/copilot-instructions.md` for Copilot, `AGENTS.md` for generic agents
+- MCP server: create and manage standards directly from within a Claude Code session
+- Continuous learning loop (claimed): bug fixed → root cause captured via Skill+MCP → playbook update proposed → human validates → distributed across repos
+- Knowledge ingestion from team tools via MCP servers: GitHub PR comments, Slack, Jira, GitLab MRs, Confluence, Notion ([demo use cases](https://github.com/PackmindHub/demo-use-case-skills))
+
+**Mental model**: Think of Packmind as the org-level version of the `.claude/rules/` modular pattern. Where `.claude/rules/*.md` keeps a single project consistent, Packmind keeps 40 repositories consistent — and syncs to every AI tool the team uses, not just Claude Code.
+
+**Security note**: Centralizing CLAUDE.md distribution means a compromised Packmind repository can propagate malicious instructions to every developer's AI session simultaneously. Treat the Packmind configuration as a sensitive artifact, apply the same access controls as you would a secrets manager, and review proposed playbook updates carefully before merging.
+
+> **Cross-ref**: For CLAUDE.md authorship at project scale, see [Section 3.5 — Team Configuration at Scale](../ultimate-guide.md#35-team-configuration-at-scale). For the Packmind MCP server, see [mcp-servers-ecosystem.md — Orchestration](./mcp-servers-ecosystem.md#orchestration).
 
 ---
 
@@ -637,6 +671,7 @@ Claude Code's plugin system supports community-built extensions. For detailed do
 - **[agentskills.io](https://agentskills.io)** - Open standard for agent skills (26+ platforms)
 
 **Notable skill packs**:
+- **[Superpowers](https://github.com/obra/superpowers)** — Complete software development methodology suite (95k+ stars, 7.5k forks, MIT). 7 context-aware skills covering the full development arc: spec elicitation through Socratic brainstorming, detailed implementation planning (2-5 min tasks with exact file paths), subagent-driven development with two-stage review (spec compliance then code quality), mandatory TDD enforcement (code written before a test gets deleted), code review, git worktree management, and branch lifecycle completion (merge/PR/discard decision). Skills trigger automatically based on context — no manual invocation needed. Install: `/plugin install superpowers@claude-plugins-official`. Created by Jesse Vincent (Prime Radiant), MIT. Also supports Cursor, Codex, OpenCode, and Gemini CLI.
 - **[gstack](https://github.com/garrytan/gstack)** — 6-skill workflow suite covering the full ship cycle: strategic product gate (`/plan-ceo-review`), architecture review (`/plan-eng-review`), paranoid code review (`/review`), automated release (`/ship`), native browser QA (`/browse`), and retrospective (`/retro`). Created by Garry Tan (Y Combinator CEO). See [Cognitive Mode Switching](../workflows/gstack-workflow.md) for the workflow pattern and adoption guide.
 
 ---

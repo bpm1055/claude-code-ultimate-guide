@@ -12,7 +12,7 @@ tags: [cheatsheet, reference]
 
 **Written with**: Claude (Anthropic)
 
-**Version**: 3.34.3 | **Last Updated**: February 2026
+**Version**: 3.37.3 | **Last Updated**: March 2026
 
 ---
 
@@ -242,8 +242,11 @@ Model: Sonnet | Ctx: 89.5k | Cost: $2.11 | Ctx(u): 56.0%
 | **`/model` slider** | Left/right arrows: `low\|medium\|high` | Session |
 | **`CLAUDE_CODE_EFFORT_LEVEL`** | Env var: `low\|medium\|high` | Shell session |
 | **`effortLevel` setting** | In settings.json: `low\|medium\|high` | Permanent |
+| **`effort` in skill frontmatter** (v2.1.80+) | Per-skill override: `low\|medium\|high` | Per invocation |
 
 **Cost tip**: For simple tasks, Alt+T to disable thinking → faster & cheaper.
+
+**Per-skill effort** — add `effort: low` to mechanical skills (commit, sync, scaffold) and `effort: high` to analytical ones (security-audit, architecture-review). Overrides session setting automatically.
 
 **OpusPlan workflow**: `/model opusplan` → `Shift+Tab × 2` (plan with Opus) → `Shift+Tab` (execute with Sonnet)
 
@@ -564,7 +567,7 @@ Deep analysis     → Use Opus (thinking on by default)
 
 | Problem | Solution |
 |---------|----------|
-| "Command not found" | Check PATH, reinstall npm global |
+| "Command not found" | Check PATH, reinstall: `curl -fsSL https://claude.ai/install.sh \| sh` |
 | Context too high (>70%) | `/compact` immediately |
 | Slow responses | `/compact` or `/clear` |
 | MCP not working | `claude mcp list`, check config |
@@ -639,4 +642,4 @@ Speed: `rg` (~20ms) → Serena (~100ms) → ast-grep (~200ms) → grepai (~500ms
 
 **Author**: Florian BRUNIAUX | [@Méthode Aristote](https://methode-aristote.fr) | Written with Claude
 
-*Last updated: February 2026 | Version 3.34.3*
+*Last updated: March 2026 | Version 3.37.3*

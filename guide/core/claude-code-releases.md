@@ -10,13 +10,13 @@ tags: [reference, release]
 > **Full details**: [github.com/anthropics/claude-code/CHANGELOG.md](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)
 > **Machine-readable**: [claude-code-releases.yaml](../machine-readable/claude-code-releases.yaml)
 
-**Latest**: v2.1.74 | **Updated**: 2026-03-12
+**Latest**: v2.1.80 | **Updated**: 2026-03-20
 
 ---
 
 ## Quick Jump
 
-- [2.1.x Series (January-March 2026)](#21x-series-january-march-2026) — Worktree isolation, background agents, ConfigChange hook, Fast mode Opus 4.6, 1M context, claude.ai MCP connectors, remote-control, auto-memory, /copy command, HTTP hooks, worktree config sharing, ultrathink re-introduced, InstructionsLoaded hook, 4 security fixes, Agent model override restored, 12x SDK token cost reduction, /context actionable suggestions, modelOverrides setting
+- [2.1.x Series (January-March 2026)](#21x-series-january-march-2026) — Worktree isolation, background agents, ConfigChange hook, Fast mode Opus 4.6, 1M context, claude.ai MCP connectors, remote-control, auto-memory, /copy command, HTTP hooks, worktree config sharing, ultrathink re-introduced, InstructionsLoaded hook, 4 security fixes, Agent model override restored, 12x SDK token cost reduction, /context actionable suggestions, modelOverrides setting, 1M context Opus 4.6 default for Max/Team/Enterprise, MCP elicitation, PostCompact hook, /effort command, Opus 4.6 64k/128k output tokens, allowRead sandbox setting, /branch command, StopFailure hook, streaming line-by-line, --console auth flag, SessionEnd fix, enterprise retry fix, rate_limits statusline field, effort frontmatter for skills, --channels MCP research preview
 - [2.0.x Series (Nov 2025 - Jan 2026)](#20x-series-november-2025---january-2026) — Opus 4.5, Claude in Chrome, Background agents
 - [Breaking Changes Summary](#breaking-changes-summary)
 - [Milestone Features](#milestone-features)
@@ -24,6 +24,127 @@ tags: [reference, release]
 ---
 
 ## 2.1.x Series (January-March 2026)
+
+### v2.1.80 (2026-03-20)
+
+- **New**: `rate_limits` field in statusline scripts for displaying Claude.ai rate limit usage (5-hour and 7-day windows with `used_percentage` and `resets_at`)
+- **New**: `source: 'settings'` plugin marketplace source — declare plugin entries inline in `settings.json`
+- **New**: CLI tool usage detection to plugin tips, in addition to file pattern matching
+- **New**: `effort` frontmatter support for skills and slash commands to override the model effort level when invoked
+- **New**: `--channels` (research preview) — allow MCP servers to push messages into your session
+- **Fixed**: `--resume` dropping parallel tool results — sessions with parallel tool calls now restore all tool_use/tool_result pairs instead of showing `[Tool result missing]` placeholders
+- **Fixed**: Voice mode WebSocket failures caused by Cloudflare bot detection on non-browser TLS fingerprints
+- **Fixed**: 400 errors when using fine-grained tool streaming through API proxies, Bedrock, or Vertex
+- **Fixed**: `/remote-control` appearing for gateway and third-party provider deployments where it cannot function
+- **Fixed**: Managed settings not being applied at startup when `remote-settings.json` was cached from a prior session
+- **Performance**: ~80MB memory reduction on startup for large repositories (tested on 250k-file repos)
+- **Improved**: Responsiveness of `@` file autocomplete in large git repos; `/effort` now shows what auto currently resolves to
+- **Improved**: `/permissions` — Tab and arrow keys now switch tabs from within a list; background tasks panel left arrow closes list view
+
+### v2.1.79 (2026-03-19)
+
+- **New**: `--console` flag to `claude auth login` for Anthropic Console (API billing) authentication
+- **New**: "Show turn duration" toggle added to the `/config` menu
+- **Fixed**: `claude -p` hanging when spawned as a subprocess without explicit stdin (e.g. Python `subprocess.run`)
+- **Fixed**: Ctrl+C not working in `-p` (print) mode
+- **Fixed**: `/btw` returning the main agent's output instead of answering the side question when triggered during streaming
+- **Fixed**: Voice mode not activating correctly on startup when `voiceEnabled: true` is set
+- **Fixed**: Enterprise users unable to retry on rate limit (429) errors
+- **Fixed**: `SessionEnd` hooks not firing when using interactive `/resume` to switch sessions
+- **Fixed**: Custom status line showing nothing when workspace trust is blocking it
+- **Fixed**: `CLAUDE_CODE_DISABLE_TERMINAL_TITLE` not preventing terminal title from being set on startup
+- **Performance**: Improved startup memory usage by ~18MB across all scenarios
+- **Performance**: Non-streaming API fallback now has a 2-minute per-attempt timeout (prevents indefinite hangs)
+- **VSCode**: Added `/remote-control` to bridge session to claude.ai/code for browser/phone continuation
+- **VSCode**: Session tabs now get AI-generated titles based on first message
+- **VSCode**: Fixed thinking pill showing "Thinking" instead of "Thought for Ns" after response completes
+
+### v2.1.78 (2026-03-18)
+
+- **New**: `StopFailure` hook event that fires when the turn ends due to an API error (rate limit, auth failure, etc.)
+- **New**: `${CLAUDE_PLUGIN_DATA}` variable for plugin persistent state that survives plugin updates; `/plugin uninstall` now prompts before deleting plugin data
+- **New**: `effort`, `maxTurns`, and `disallowedTools` frontmatter support for plugin-shipped agents
+- **New**: `ANTHROPIC_CUSTOM_MODEL_OPTION` env var to add a custom entry to the `/model` picker (with optional `_NAME` and `_DESCRIPTION` suffixed vars)
+- **New**: Terminal notifications (iTerm2/Kitty/Ghostty popups, progress bar) now reach the outer terminal when running inside tmux with `set -g allow-passthrough on`
+- **New**: Response text now streams line-by-line as it's generated
+- **Fixed**: ⚠️ **Security** — Silent sandbox disable when `sandbox.enabled: true` is set but dependencies are missing — now shows a visible startup warning
+- **Fixed**: ⚠️ **Security** — `deny: ["mcp__servername"]` permission rules were not removing MCP server tools before sending to the model, allowing it to see and attempt blocked tools
+- **Fixed**: ⚠️ **Security** — `.git`, `.claude`, and other protected directories were writable without a prompt in `bypassPermissions` mode
+- **Fixed**: Infinite loop when API errors triggered stop hooks that re-fed blocking errors to the model
+- **Fixed**: `cc log` and `--resume` silently truncating conversation history on large sessions (>5 MB) that used subagents
+- **Fixed**: `sandbox.filesystem.allowWrite` not working with absolute paths (previously required `//` prefix)
+- **Fixed**: `--worktree` flag not loading skills and hooks from the worktree directory
+- **Fixed**: `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` and `includeGitInstructions` setting not suppressing git status section in system prompt
+- **Fixed**: Bash tool not finding Homebrew and other PATH-dependent binaries when VS Code is launched from Dock/Spotlight
+- **Fixed**: Voice mode modifier-combo push-to-talk keybindings requiring a hold instead of activating immediately
+- **Fixed**: Voice mode not working on WSL2 with WSLg (Windows 11)
+- **Fixed**: `ANTHROPIC_BETAS` environment variable being silently ignored when using Haiku models
+- **VSCode**: Fixed "API Error: Rate limit reached" when selecting Opus — model dropdown no longer offers 1M context variant to subscribers whose plan tier is unknown
+- **Performance**: Improved memory usage and startup time when resuming large sessions
+
+### v2.1.77 (2026-03-17)
+
+- **New**: ⭐ Opus 4.6 default maximum output tokens raised to 64k; upper bound for Opus 4.6 and Sonnet 4.6 raised to 128k tokens
+- **New**: `allowRead` sandbox filesystem setting to re-allow read access within `denyRead` regions
+- **New**: `/copy N` to copy the Nth-latest assistant response directly
+- **New**: `/branch` command (replaces `/fork`; `/fork` still works as an alias)
+- **New**: `SendMessage` now auto-resumes stopped agents in the background instead of returning an error
+- **Fixed**: ⚠️ **Security** — `PreToolUse` hooks returning `"allow"` could bypass `deny` permission rules including enterprise managed settings
+- **Fixed**: Auto-updater accumulating tens of gigabytes of memory when slash-command overlay repeatedly opened/closed, triggering overlapping binary downloads
+- **Fixed**: `--resume` silently truncating recent conversation history due to a race between memory-extraction writes and the main transcript
+- **Fixed**: "Always Allow" on compound bash commands (e.g. `cd src && npm test`) saving a single rule for the full string instead of per-subcommand, leading to dead rules and repeated permission prompts
+- **Fixed**: Write tool silently converting line endings when overwriting CRLF files or creating files in CRLF directories
+- **Fixed**: Cost and token usage not tracked when API falls back to non-streaming mode
+- **Fixed**: `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` not stripping beta tool-schema fields, causing proxy gateways to reject requests
+- **Fixed**: Bash tool reporting errors for successful commands when system temp directory path contains spaces
+- **Fixed**: Paste being lost when typing immediately after pasting; Ctrl+D in `/feedback` deleting forward instead of exiting
+- **Fixed**: Various rendering fixes: ordered list numbers, CJK bleeding, background colors in tmux, hyperlinks opening twice in VS Code
+- **Fixed**: Teammate panes not closing when leader exits; iTerm2 session crash when selecting text inside tmux over SSH
+- **Breaking**: `Agent` tool no longer accepts a `resume` parameter — use `SendMessage({to: agentId})` to continue a previously spawned agent
+- **VSCode**: Fixed gitignore patterns with commas silently excluding filetypes from `@`-mention file picker; improved scroll wheel responsiveness; improved plan preview tab titles
+- **Performance**: Faster startup on macOS (~60ms) by reading keychain credentials in parallel with module loading; faster `--resume` on fork-heavy sessions (up to 45% faster, 100-150MB less peak memory)
+
+### v2.1.76 (2026-03-14)
+
+- **New**: ⭐ MCP elicitation support — MCP servers can now request structured input mid-task via an interactive dialog (form fields or browser URL)
+- **New**: `Elicitation` and `ElicitationResult` hooks to intercept and override MCP input responses before they're sent back to the server
+- **New**: `PostCompact` hook that fires after compaction completes
+- **New**: `-n` / `--name <name>` CLI flag to set a display name for the session at startup
+- **New**: `worktree.sparsePaths` setting for `claude --worktree` in large monorepos — check out only needed directories via git sparse-checkout
+- **New**: `/effort` slash command to set model effort level
+- **Fixed**: Deferred tools (loaded via `ToolSearch`) losing their input schemas after conversation compaction — array and number parameters were being rejected with type errors
+- **Fixed**: Auto-compaction retrying indefinitely after consecutive failures — circuit breaker now stops after 3 attempts
+- **Fixed**: `Bash(cmd:*)` permission rules not matching when a quoted argument contains `#`
+- **Fixed**: Slash commands showing "Unknown skill"
+- **Fixed**: Plan mode asking for re-approval after the plan was already accepted
+- **Fixed**: Voice mode swallowing keypresses while a permission dialog or plan editor was open
+- **Fixed**: `/voice` not working on Windows when installed via npm
+- **Fixed**: Bridge sessions failing to recover after extended WebSocket disconnects
+- **Improved**: `--worktree` startup performance by reading git refs directly, skipping redundant `git fetch`
+- **Improved**: Killing a background agent now preserves its partial results in the conversation context
+- **Improved**: Model fallback notifications — now always visible with human-friendly model names
+- **Improved**: Stale worktree cleanup — worktrees left behind after interrupted parallel runs are automatically cleaned up
+- **Improved**: Blockquote readability on dark terminal themes — italic with left bar instead of dim
+- **Updated**: `--plugin-dir` now accepts one path only; use repeated flags for multiple directories
+- **VSCode**: Fixed gitignore patterns containing commas silently excluding entire filetypes from the `@`-mention file picker
+
+### v2.1.75 (2026-03-13)
+
+- **New**: ⭐ 1M context window for Opus 4.6 now enabled by default for Max, Team, and Enterprise plans (previously required extra usage)
+- **New**: Session name display on the prompt bar when using `/rename`
+- **New**: Last-modified timestamps on memory files — helps Claude reason about freshness of memories
+- **New**: Hook source display (settings/plugin/skill) in permission prompts when a hook requires confirmation
+- **New**: `/color` command available for all users to set a prompt-bar color
+- **Fixed**: Token estimation over-counting for thinking and `tool_use` blocks (was causing premature context compaction)
+- **Fixed**: Bash tool mangling `!` in piped commands (e.g. `jq 'select(.x != .y)'` now works correctly)
+- **Fixed**: Voice mode not activating correctly on fresh installs without toggling `/voice` twice
+- **Fixed**: Claude Code header not updating model name after switching with `/model` or Option+P
+- **Fixed**: Session crash when attachment message computation returns undefined values
+- **Fixed**: Managed-disabled plugins showing up in `/plugin` Installed tab
+- **Fixed**: Corrupted marketplace config path handling
+- **Fixed**: `/resume` losing session names after resuming a forked or continued session
+- **Improved**: Startup performance on macOS non-MDM machines (skips unnecessary subprocess spawns)
+- **Improved**: Async hook completion messages suppressed by default (visible with `--verbose` or transcript mode)
 
 ### v2.1.74 (2026-03-12)
 
@@ -720,12 +841,13 @@ tags: [reference, release]
 | v2.0.58 | Managed settings prefer `C:\Program Files\ClaudeCode` |
 | v2.1.2 | Deprecated `C:\ProgramData\ClaudeCode` path |
 
-### SDK
+### SDK / Agent Tool
 
 | Version | Change |
 |---------|--------|
 | v2.0.25 | Removed legacy SDK entrypoint → `@anthropic-ai/claude-agent-sdk` |
 | v2.1.0 | Minimum zod peer dependency: `^4.0.0` |
+| v2.1.77 | `Agent` tool no longer accepts `resume` parameter — use `SendMessage({to: agentId})` instead |
 
 ### API Ecosystem
 

@@ -17,6 +17,22 @@ You are a senior application security engineer. Perform a 6-phase security audit
 
 ---
 
+### Pre-Step: Establish Audit Context
+
+**Before running any checks**, use `AskUserQuestion` to ask:
+
+1. **Environment**: Is this code running in production, staging, or local development?
+2. **Scope**: Full audit or specific areas to prioritize?
+
+This is critical for accurate findings:
+- **Local dev**: `DEBUG=True`, CORS `*`, HTTP without TLS, `.env` files — all normal. Do NOT flag as vulnerabilities. Mention in an "Before going to production" informational section instead.
+- **Staging**: Configs should mirror production. Flag deviations as MEDIUM.
+- **Production**: Any misconfiguration is a real finding with full severity.
+
+If the user doesn't answer or is unsure, default to **production** (conservative).
+
+---
+
 ### Phase 1: Configuration Security (via /security-check)
 
 Execute all checks from `/security-check` (the `examples/commands/security-check.md` command). This covers:
@@ -58,6 +74,23 @@ find . -name ".env*" -not -path "*/node_modules/*" -not -path "*/.git/*" -type f
   grep -q "\.key" .gitignore && echo "✅ .key in .gitignore" || echo "⚠️ .key NOT in .gitignore"
 }
 ```
+
+**Anti-false-positive rule — MANDATORY before reporting any secret finding:**
+
+Before raising a secrets finding, run these verification commands:
+
+```bash
+# 1. Verify .env is actually in .gitignore (if yes, local .env is NOT a finding)
+grep -n '\.env' .gitignore 2>/dev/null || echo ".env NOT in .gitignore"
+
+# 2. Verify secrets were actually committed (empty output = no finding)
+git log --all -p -- '*.env' '*.key' '*.pem' '*.secret' 2>/dev/null | grep -E '^\+.*(password|secret|api_key|token)' | head -20
+
+# 3. Check git history for provider-specific patterns
+git log --all -p 2>/dev/null | grep -E '^\+(sk-[a-zA-Z0-9]{20,}|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z0-9]{36})' | head -10
+```
+
+Only report a secret finding if you have **concrete proof from these commands**. A `.env` file present locally is not a finding if it's in `.gitignore`. Never report "secrets may be exposed" based on pattern matching alone.
 
 **Scoring:**
 - 0 secrets found → +20 points

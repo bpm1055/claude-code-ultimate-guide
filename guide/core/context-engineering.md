@@ -26,6 +26,7 @@ This guide covers everything from the token math behind context budgets to build
 6. [Context Lifecycle](#6-context-lifecycle)
 7. [Quality Measurement](#7-quality-measurement)
 8. [Context Reduction Techniques](#8-context-reduction-techniques)
+9. [Maturity Assessment](#9-maturity-assessment)
 
 ---
 
@@ -67,6 +68,8 @@ LLMs are context-window computers. The quality of output is bounded by the quali
 
 Teams that invest in context engineering consistently report fewer revision cycles, better adherence to conventions, and more predictable outputs. The investment is front-loaded (building the system), but the returns compound across every interaction.
 
+A useful diagnostic reframe: **most AI output failures are context failures, not model failures.** When Claude generates a generic response, ignores a convention, or produces code that doesn't match your stack, the model is almost never broken — the context it received was incomplete, contradictory, or missing the right information at the right time. This reframe shifts troubleshooting from "the AI is bad at this" to "what is missing from the context?"
+
 ### The Three Layers
 
 Context engineering in Claude Code operates across three distinct layers:
@@ -80,6 +83,21 @@ Context engineering in Claude Code operates across three distinct layers:
 Each layer has different tradeoffs. Global config is always-on but cannot reference project-specific details. Session instructions are flexible but ephemeral. Project config is the workhorse: structured, versioned, reviewable.
 
 Good context engineering means putting each piece of information in the right layer — not cramming everything into one file, and not leaving critical knowledge in the session layer where it evaporates after every conversation.
+
+### Static vs. Dynamic Context
+
+The three-layer system above is *static context* — configuration files that are assembled before a session begins and remain stable throughout. Claude Code is primarily a static context system, which is why CLAUDE.md structure and path-scoping matter so much.
+
+As you move toward agent workflows, a second category appears: *dynamic context*, assembled at inference time as the agent operates.
+
+| Type | How assembled | Examples in Claude Code |
+|------|--------------|-------------------------|
+| **Static** | Before session, from files | CLAUDE.md, path-scoped modules, skills |
+| **Dynamic** | At runtime, from tools | Tool outputs, file reads, web fetches, MCP data |
+
+In practice, every Claude Code session uses both. The static context (your configuration) sets the behavioral envelope; the dynamic context (files Claude reads, tool results it processes) provides the specific information for each task. Context engineering covers both, but the failure modes differ: static context problems manifest as consistent convention violations; dynamic context problems manifest as Claude acting on stale or incomplete information mid-task.
+
+For teams building automated pipelines and agents, Anthropic's September 2025 engineering post ["Effective context engineering for AI agents"](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) covers the dynamic side in depth.
 
 ---
 
@@ -1171,6 +1189,50 @@ The highest-leverage sequence for a project with context debt:
 3. Compress (sharpens remaining rules)
 4. Archive (clears obsolete rules safely)
 5. Reorder (prioritizes the rules that matter most)
+
+---
+
+## 9. Maturity Assessment
+
+Context engineering capability develops in stages. Most teams reach Level 2 and stop — not because higher levels are complex, but because the failures at Level 2 are invisible. Output quality is acceptable, so the pressure to go further never appears. This assessment makes the gap visible.
+
+### The Six Levels
+
+| Level | Name | What exists | Failure mode |
+|-------|------|-------------|--------------|
+| **0** | No configuration | LLM with no CLAUDE.md | Generic outputs, zero project awareness |
+| **1** | Flat config | Single CLAUDE.md, no structure | Rules pile up, adherence degrades after ~100 lines |
+| **2** | Structured config | Sections, clear organization, global/project separation | Works solo, breaks at team scale |
+| **3** | Modular config | Path-scoped modules, deliberate layering | Rules maintained but no verification |
+| **4** | Measured config | Canary tests, adherence tracking, lifecycle management | System works but drifts silently over time |
+| **5** | Engineered system | Profiles, CI drift detection, ACE pipeline, quarterly audit rhythm | — |
+
+### Self-Assessment
+
+Answer each question. Stop at the first "No" — that is your current level.
+
+**Level 0 → 1**: Do you have a CLAUDE.md file in your project?
+
+**Level 1 → 2**: Does your configuration distinguish between global conventions (in `~/.claude/CLAUDE.md`) and project-specific rules (in `./CLAUDE.md`)? Are sections clearly separated?
+
+**Level 2 → 3**: Are subsystem-specific rules in path-scoped modules rather than the root CLAUDE.md? Does your root CLAUDE.md stay under 150 lines?
+
+**Level 3 → 4**: Do you have canary checks that verify key conventions? Do you track violation rates for your most important rules? Do you run a context audit after major milestones?
+
+**Level 4 → 5**: Do team members assemble their CLAUDE.md from profiles rather than editing it directly? Is there CI drift detection that alerts when configuration diverges from source modules? Do you run session retrospectives to feed new patterns back into configuration?
+
+### What to Do at Each Level
+
+| Your level | Next action |
+|------------|-------------|
+| 0 | Create a minimal CLAUDE.md with 5-10 rules. See §3 for what belongs there. |
+| 1 | Split global and project config. Move cross-project preferences to `~/.claude/CLAUDE.md`. |
+| 2 | Identify the 2-3 highest-traffic subsystems. Create path-scoped modules for them. |
+| 3 | Write 3-5 canary prompts for your most violated rules. Automate them. |
+| 4 | Introduce profiles for team members. Add CI drift detection. Start session retrospectives. |
+| 5 | Maintain quarterly audits. The system is built — the work is ongoing calibration. |
+
+Most teams move from Level 0 to Level 2 in a single afternoon. Moving from Level 3 to Level 4 requires a measurement habit, not more configuration. The bottleneck at the higher levels is not knowledge — it is the discipline to treat configuration as a living system rather than a one-time setup.
 
 ---
 

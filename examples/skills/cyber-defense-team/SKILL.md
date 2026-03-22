@@ -1,12 +1,13 @@
 ---
 name: cyber-defense-team
-description: Orchestrate a 4-agent cyber defense pipeline to analyze log files for threats. Spawns log-ingestor → anomaly-detector → risk-classifier → threat-reporter as parallel-then-sequential agents. Produces a Markdown incident report.
+description: "Orchestrate a 4-agent cyber defense pipeline to analyze log files for threats. Use when investigating security logs, detecting anomalies in access patterns, classifying breach severity, or generating incident reports from nginx/auth/syslog files."
 version: 1.0.0
 usage: /cyber-defense-team [log-file-path]
 args:
   - name: log_path
     description: Path to the log file to analyze (or paste log content directly)
     required: true
+effort: high
 ---
 
 # Cyber Defense Team Skill

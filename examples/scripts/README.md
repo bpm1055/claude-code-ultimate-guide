@@ -27,6 +27,7 @@ Utility scripts for Claude Code power users.
 | `sync-claude-config.sh` | Sync Claude config files across machines |
 | `sonnetplan.sh` | Run Claude with Sonnet replacing Opus (cost optimization alias) |
 | `test-prompt-caching.ts` | Verify Anthropic prompt caching is active (no deps, fetch only) |
+| `smart-suggest-roi.py` | Analyze acceptance rate of smart-suggest hook suggestions vs session activity |
 
 ---
 
