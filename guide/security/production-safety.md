@@ -7,7 +7,7 @@ tags: [security, guide, devops]
 # Production Safety Rules
 
 > **Audience**: Teams deploying Claude Code in production environments.
-> **For solo learners**: See [Getting Started](./ultimate-guide.md#1-getting-started) instead.
+> **For solo learners**: See [Getting Started](#getting-started) instead.
 
 ---
 
@@ -912,13 +912,13 @@ Team settings take precedence, but individuals can opt-in to stricter rules.
 
 ## See Also
 
-- [Ultimate Guide §9.12 Git Best Practices](./ultimate-guide.md#912-git-best-practices--workflows) — Commit workflow, Plan → Act pattern
+- [Ultimate Guide §9.12 Git Best Practices](#912-git-best-practices-workflows) — Commit workflow, Plan → Act pattern
 - [Security Hardening Guide](./security-hardening.md) — MCP security, secret protection, hook stack
 - [Data Privacy Guide](./data-privacy.md) — MCP database risks, retention policies
 - [Enterprise AI Governance](./enterprise-governance.md) — Org-level governance: usage charters, MCP approval workflow, guardrail tiers, compliance
 - [Adoption Approaches](../roles/adoption-approaches.md) — Team setup, shared conventions, enterprise rollout
-- [Plan Mode](./ultimate-guide.md#25-plan-mode) — Safe exploration before execution
-- [Permissions System](./ultimate-guide.md#33-settings--permissions) — Allow/deny rules, hooks
+- [Plan Mode](#23-plan-mode) — Safe exploration before execution
+- [Permissions System](#33-settings-permissions) — Allow/deny rules, hooks
 
 ---
 
@@ -972,6 +972,118 @@ Team settings take precedence, but individuals can opt-in to stricter rules.
 Infrastructure changes allowed for migration project.
 After expiry: revert to standard rules.
 ```
+
+---
+
+## Rule 6: Autonomous Loop Safety
+
+### The Problem
+
+Autonomous agent loops — a Claude session running unattended for hours, processing a queue, monitoring a system — have a failure mode that's hard to debug: the process *appears* to be running but has silently stalled. No error. No exit code. Just nothing happening, consuming your API budget.
+
+This happens when:
+- Claude enters a reasoning loop with no exit condition
+- A tool call hangs waiting for a resource that's gone
+- The session hits an edge case that produces no output but also no failure
+
+### The Rule
+
+For any autonomous session expected to run longer than a few minutes, implement a heartbeat mechanism. If the heartbeat stops, kill the entire **process group** — not just the parent process.
+
+**Why process group, not just parent**: Claude Code spawns child processes (shell commands, tool calls). Killing only the parent leaves orphaned children consuming resources and potentially taking actions without oversight.
+
+### Implementation
+
+**Heartbeat writer** — runs inside the autonomous loop as a PostToolUse hook:
+
+```bash
+#!/bin/bash
+# .claude/hooks/autonomous-heartbeat.sh
+# PostToolUse hook: write timestamp after every tool use
+
+HEARTBEAT_FILE="${CLAUDE_HEARTBEAT_FILE:-/tmp/claude-heartbeat-$$}"
+date +%s > "$HEARTBEAT_FILE"
+```
+
+**Dead-man watchdog** — runs as a separate process alongside Claude:
+
+```bash
+#!/bin/bash
+# scripts/watchdog.sh
+# Usage: ./scripts/watchdog.sh <timeout_seconds> <pid>
+
+TIMEOUT="${1:-30}"
+TARGET_PID="${2:-}"
+HEARTBEAT_FILE="${CLAUDE_HEARTBEAT_FILE:-/tmp/claude-heartbeat-$TARGET_PID}"
+
+if [[ -z "$TARGET_PID" ]]; then
+  echo "Usage: watchdog.sh <timeout_seconds> <pid>" >&2
+  exit 1
+fi
+
+while true; do
+  sleep 5
+
+  if ! kill -0 "$TARGET_PID" 2>/dev/null; then
+    echo "Watchdog: process $TARGET_PID has exited cleanly"
+    exit 0
+  fi
+
+  if [[ -f "$HEARTBEAT_FILE" ]]; then
+    LAST_BEAT=$(cat "$HEARTBEAT_FILE")
+    NOW=$(date +%s)
+    AGE=$(( NOW - LAST_BEAT ))
+
+    if [[ "$AGE" -gt "$TIMEOUT" ]]; then
+      echo "Watchdog: no heartbeat for ${AGE}s (limit: ${TIMEOUT}s) — killing process group"
+      kill -TERM -"$TARGET_PID" 2>/dev/null || kill -TERM "$TARGET_PID"
+      sleep 2
+      kill -KILL -"$TARGET_PID" 2>/dev/null || true
+      rm -f "$HEARTBEAT_FILE"
+      exit 1
+    fi
+  fi
+done
+```
+
+**Launch script** that wires them together:
+
+```bash
+#!/bin/bash
+export CLAUDE_HEARTBEAT_FILE="/tmp/claude-heartbeat-$$"
+
+claude --print "Process the task queue in tasks.json" &
+CLAUDE_PID=$!
+
+./scripts/watchdog.sh 30 "$CLAUDE_PID" &
+WATCHDOG_PID=$!
+
+wait "$CLAUDE_PID"
+EXIT_CODE=$?
+
+kill "$WATCHDOG_PID" 2>/dev/null
+rm -f "$CLAUDE_HEARTBEAT_FILE"
+exit "$EXIT_CODE"
+```
+
+### Tuning the Timeout
+
+| Task type | Recommended timeout |
+|-----------|-------------------|
+| Simple file operations | 15–30s |
+| Web requests, API calls | 60s |
+| Code compilation, test runs | 120s |
+| Long-running research tasks | 300s |
+
+Start at 30s and increase only when you observe legitimate pauses longer than your timeout.
+
+### When NOT to Use This
+
+- Interactive sessions (you're watching) — the watchdog adds no value
+- Tasks under 5 minutes — setup overhead isn't justified
+- Pipelines where failure is expected and handled by retry logic
+
+> **Credit**: Heartbeat dead-man switch pattern for autonomous agents from [Everything Claude Code Security Guide](https://github.com/affaan-m/everything-claude-code) (Affaan Mustafa). The process-group kill and watchdog separation are their contributions.
 
 ---
 

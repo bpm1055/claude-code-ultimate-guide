@@ -16,13 +16,14 @@ tags: [reference, integration, plugin]
 2. [Token & Cost Tracking](#token--cost-tracking)
 3. [Session Management](#session-management)
 4. [Configuration Management](#configuration-management)
-5. [Engineering Standards Distribution](#engineering-standards-distribution)
-6. [Hook Utilities](#hook-utilities)
-7. [Alternative UIs](#alternative-uis)
-8. [Multi-Agent Orchestration](#multi-agent-orchestration)
-9. [Plugin Ecosystem](#plugin-ecosystem)
-10. [Known Gaps](#known-gaps)
-11. [Recommendations by Persona](#recommendations-by-persona)
+5. [Configuration Quality](#configuration-quality)
+6. [Engineering Standards Distribution](#engineering-standards-distribution)
+7. [Hook Utilities](#hook-utilities)
+8. [Alternative UIs](#alternative-uis)
+9. [Multi-Agent Orchestration](#multi-agent-orchestration)
+10. [Plugin Ecosystem](#plugin-ecosystem)
+11. [Known Gaps](#known-gaps)
+12. [Recommendations by Persona](#recommendations-by-persona)
 
 ---
 
@@ -168,7 +169,7 @@ A CLI proxy that filters command outputs **before** they reach Claude's context.
 
 **Limitations**: Not suitable for interactive commands or very small outputs (<100 chars).
 
-> **Cross-ref**: Full docs at [ultimate-guide.md Section 9](./ultimate-guide.md#command-output-optimization-with-rtk)
+> **Cross-ref**: Full docs at [ultimate-guide.md Section 9](#command-output-optimization-with-rtk)
 
 ---
 
@@ -329,6 +330,75 @@ A CLI that scaffolds pre-configured Claude Code setups with hooks, commands, sta
 
 ---
 
+## Configuration Quality
+
+Tools that score, audit, and maintain the quality of existing AI agent configs over time — as opposed to creating them from scratch.
+
+> **Context**: CLAUDE.md is not a one-time artifact. As a codebase evolves, the context it provides to the AI can drift: paths referenced no longer exist, domain knowledge becomes stale, new patterns emerge without being documented. The tools below address this maintenance layer.
+
+### Caliber
+
+A CLI that scores your AI agent config quality (0-100), generates tailored configs from codebase fingerprinting, and detects drift between your code and your CLAUDE.md. Works for Claude Code, Cursor, and Codex.
+
+| Attribute | Details |
+|-----------|---------|
+| **Source** | [GitHub: rely-ai-org/caliber](https://github.com/rely-ai-org/caliber) |
+| **Install** | `npx @rely-ai/caliber score` (zero-install) or `npm install -g @rely-ai/caliber` |
+| **Language** | TypeScript (Node.js ≥20) |
+| **License** | MIT |
+| **Status** | Early-stage (released March 2026) — APIs may evolve |
+
+**Key features**:
+
+- **Local scoring**: deterministic 100-point rubric across 6 categories (Existence, Quality, Grounding, Accuracy, Freshness, Bonus) — no LLM calls, no API keys required
+- **Drift detection**: git-based — detects when code commits outpace config updates; cache invalidates on tree signature or HEAD change
+- **Config generation**: codebase fingerprinting (languages, frameworks, deps) → generates CLAUDE.md + MCP suggestions via your existing AI subscription (Claude Code seat, Cursor seat, or API key)
+- **Review workflow**: score → propose → diff review → accept/decline → backup to `.caliber/backups/` → `caliber undo`
+- **GitHub Action**: posts PR comments with score, grade, delta vs base branch; optional `fail-below` threshold blocks merge
+
+```bash
+# Score your current config (read-only, zero install)
+npx @rely-ai/caliber score
+
+# Generate or improve configs
+npx @rely-ai/caliber init
+
+# Detect drift after code changes
+caliber refresh
+
+# GitHub Action (fail PR if score < 75)
+# uses: rely-ai-org/caliber@v1
+# with: { fail-below: 75 }
+```
+
+**Score categories**:
+
+| Category | Max | What it measures |
+|----------|-----|-----------------|
+| Existence | 25 | CLAUDE.md present, skills, MCP config, cross-platform parity |
+| Quality | 25 | Token budget, code blocks, concreteness ratio, no duplicates |
+| Grounding | 20 | % of project dirs/files referenced in config |
+| Accuracy | 15 | Referenced paths exist on disk, commits since last config update |
+| Freshness | 10 | Config staleness vs git history, no secrets |
+| Bonus | 7 | Hooks configured, AGENTS.md, learned content present |
+
+**Delta vs other config tools in this section**:
+
+| Need | Existing tool | What Caliber adds |
+|------|--------------|-------------------|
+| Create config from scratch | AIBlueprint | — |
+| Audit existing config quality | Nothing | Scored rubric + specific failing checks |
+| Detect config drift from code | Nothing | Git-based drift detection |
+| Distribute standards at org scale | Packmind | — |
+
+**Limitations**: Early-stage tool (March 2026, ~65 stars at time of writing). Multi-tool support (Claude Code + Cursor + Codex + Copilot) may produce generically adequate configs rather than deeply Claude Code-specific ones. Scoring rubric is not exposed as a standalone document — the categories are deterministic but not user-visible without reading the source.
+
+**Security note**: `caliber refresh` and `caliber watch` have write access to CLAUDE.md. Same risk class as Packmind: review generated output before accepting, particularly when using external sources (`caliber config`). Treat `.caliber/` config files with the same discipline as a secrets manager.
+
+> **Cross-ref**: For scaffolding a config from scratch, see [AIBlueprint](#aiblueprint). For distributing and enforcing standards at org scale, see [Packmind](#packmind). For manual CLAUDE.md authorship, see [ultimate-guide.md Section 3](#31-memory-files-claudemd).
+
+---
+
 ## Engineering Standards Distribution
 
 Tools that solve the organizational-scale problem: keeping engineering standards in sync across dozens of repositories and multiple AI coding agents.
@@ -358,7 +428,7 @@ An open-source "ContextOps" platform (Packmind's term for treating engineering c
 
 **Security note**: Centralizing CLAUDE.md distribution means a compromised Packmind repository can propagate malicious instructions to every developer's AI session simultaneously. Treat the Packmind configuration as a sensitive artifact, apply the same access controls as you would a secrets manager, and review proposed playbook updates carefully before merging.
 
-> **Cross-ref**: For CLAUDE.md authorship at project scale, see [Section 3.5 — Team Configuration at Scale](../ultimate-guide.md#35-team-configuration-at-scale). For the Packmind MCP server, see [mcp-servers-ecosystem.md — Orchestration](./mcp-servers-ecosystem.md#orchestration).
+> **Cross-ref**: For CLAUDE.md authorship at project scale, see [Section 3.5 — Team Configuration at Scale](#35-team-configuration-at-scale). For the Packmind MCP server, see [mcp-servers-ecosystem.md — Orchestration](./mcp-servers-ecosystem.md#orchestration).
 
 ---
 
@@ -701,7 +771,7 @@ As of February 2026, the community tooling ecosystem has notable gaps:
 | **Enterprise** | ccusage (MCP) + custom dashboards | Programmatic cost data + audit trails |
 | **Python-centric** | ccburn + Claude Chic | Native Python ecosystem tools |
 | **Multi-agent user** | Toad or Conductor | Unified agent management |
-| **Config-heavy setup** | claude-code-config + AIBlueprint | TUI config management + scaffolding |
+| **Config-heavy setup** | claude-code-config + AIBlueprint + Caliber | TUI config management + scaffolding + drift detection |
 
 ---
 

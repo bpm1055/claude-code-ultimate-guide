@@ -13,7 +13,7 @@ tags: [workflow, agents, architecture]
 
 **When introduced**: v2.1.32 (2026-02-05) as research preview
 **Reading time**: ~30 min
-**Prerequisites**: Opus 4.6 model, understanding of [Sub-Agents](../ultimate-guide.md#sub-agents), familiarity with [Task Tool](../ultimate-guide.md#task-tool)
+**Prerequisites**: Opus 4.6 model, understanding of [Sub-Agents](#split-role-sub-agents), familiarity with Task Tool
 
 **🚀 Want to get started fast?** See **[Agent Teams Quick Start Guide](./agent-teams-quick-start.md)** (8-10 min, copy-paste patterns for your projects)
 
@@ -282,7 +282,7 @@ claude
 - ✅ Git repository (for coordination)
 
 **Recommended**:
-- ✅ Understanding of [Sub-Agents](../ultimate-guide.md#sub-agents)
+- ✅ Understanding of [Sub-Agents](#split-role-sub-agents)
 - ✅ Familiarity with git workflows
 - ✅ Budget awareness (token-intensive feature)
 
@@ -1037,6 +1037,31 @@ Team lead
       └─ Agent 2b: State management
 ```
 
+### AGENTS.md for Compound Learning
+
+Agent teams benefit from a shared context file that accumulates cross-session learnings — patterns that worked, pitfalls to avoid, codebase-specific gotchas. This file is called `AGENTS.md` (analogous to `CLAUDE.md` but scoped to agentic workflows).
+
+**What to put in AGENTS.md**:
+```markdown
+## Proven Patterns
+- Use Interface-First decomposition for this codebase (see src/types/)
+- Backend agent must run `db:migrate` before tests — env is not auto-seeded
+
+## Pitfalls
+- Do NOT modify auth.ts and session.ts in parallel — circular imports cause test failures
+- Linter runs on save; do not commit with lint errors, the CI gate is strict
+
+## Style
+- All API responses must follow the ApiResponse<T> wrapper type
+- Error codes live in src/constants/errors.ts — always reuse, never hardcode strings
+```
+
+**Critical rule — never let agents write AGENTS.md directly**. ETH Zürich research (Gloaguen et al., 2026) confirms that LLM-generated context files reduce task success by ~3% and increase inference costs by 20%+, compared to a ~4% improvement from developer-written files. The mechanism: agents generate generic, bloated context that creates cognitive overhead for every subsequent agent reading it.
+
+Every line in AGENTS.md should be approved by a human. If a teammate identifies a new pattern worth documenting, it sends a suggestion to the team lead — the lead decides whether to add it.
+
+**Maintenance**: Review AGENTS.md after each team session (Retro step of the Factory Model). Remove entries that are no longer relevant — stale instructions are actively harmful, not neutral.
+
 ### Git Worktree Management
 
 **Why worktrees matter**:
@@ -1090,6 +1115,15 @@ git worktree add ../project-agent1 main
    Agent 2, check if user.ts has same patterns."
    ```
 
+5. **Hard token budgets per agent**: Assign domain-specific limits to prevent runaway consumption
+   ```bash
+   # In task brief to each teammate
+   "Frontend agent: stay under 180k tokens total.
+   Backend agent: stay under 280k tokens total.
+   Auto-pause and report status at 85% of your budget."
+   ```
+   Token costs scale linearly with team size — a 5-agent team can consume 5× the tokens of a single session. Caps prevent one agent's rabbit hole from blowing the entire session budget.
+
 ### Quality Assurance
 
 **Validation checklist**:
@@ -1112,6 +1146,44 @@ git diff main..agent-teams-branch  # Review all changes
 npm test                           # Run full test suite
 npm run lint                       # Check code style
 ```
+
+### Loop Guardrails
+
+Agent teams can get stuck in unproductive retry cycles without hard iteration limits. Two mechanisms prevent this:
+
+**MAX_ITERATIONS per teammate**:
+
+Set a hard cap in the task brief for each teammate:
+```
+"Maximum 8 attempts on any single failing task.
+Before retrying, answer: What specifically failed? What one change would fix it?
+If still blocked after 8 attempts, stop and report to team lead."
+```
+
+The mandatory reflection prompt ("What failed? What specific change would fix it?") reduces stuck agents substantially — it forces the agent to change approach rather than repeat the same failing action with minor variations.
+
+**Kill and reassign criteria**:
+- Stuck 3+ iterations on the same blocker → kill the task, reassign with more specific context
+- Task consumed >85% of its token budget with no commit → pause and report
+- No progress after 2 reflection cycles → escalate to team lead
+
+### Dedicated Reviewer Teammate
+
+For production agent teams, adding a read-only reviewer agent improves output quality without slowing throughput:
+
+**Setup**:
+```
+Reviewer brief:
+- Model: Claude Opus 4.6 (for thoroughness)
+- Tools available: lint, run tests, security-scan only — no file writes
+- Trigger: automatically review on every TaskCompleted event
+- Scope: the specific files changed in that task, not the full codebase
+- Output: structured findings (blocking / non-blocking) added to shared task list
+```
+
+**Ratio**: 1 reviewer per 3-4 builders. With fewer builders, the reviewer becomes a bottleneck; with more, the review queue backs up.
+
+**Why read-only matters**: a reviewer with write access will start fixing issues itself, which creates merge conflicts and defeats the purpose of parallel isolation.
 
 ---
 
@@ -1310,6 +1382,69 @@ echo "dist/" >> .gitignore
 
 ---
 
+## 9. Iterative Retrieval for Sub-Agents
+
+When a sub-agent lacks context to complete its task accurately, the default failure mode is: it makes assumptions and generates plausible-but-wrong output. The output looks reasonable enough to pass a quick review, but breaks downstream.
+
+**The pattern**: give sub-agents a retrieval budget — they can request more context up to N cycles before committing to a response. Three cycles covers most cases while bounding cost and latency.
+
+### Structure
+
+```
+Cycle 1: Agent receives task + initial context
+         → If confident: produce output
+         → If uncertain: identify what's missing, request specific files or symbols
+
+Cycle 2: Agent receives requested context
+         → If confident: produce output
+         → If still uncertain: one final targeted request
+
+Cycle 3: Agent receives final context
+         → Produce best output regardless of remaining uncertainty
+         → Flag explicit assumptions made
+```
+
+### What to Pass Sub-Agents
+
+The most common mistake: giving a sub-agent the WHAT without the WHY. An agent that knows it's "implementing a retry mechanism for the payment service" has context that saves correction cycles:
+
+```markdown
+## Objective
+[WHY this task exists — the problem being solved, the constraint being met]
+
+## Task
+[WHAT to do, specifically]
+
+## Context
+Files you have access to: [...]
+Known constraints: [...]
+What NOT to touch: [...]
+
+## If you need more information
+You may request up to 2 additional context cycles. Be specific:
+- Name the exact files or symbols you need
+- Explain why they're required to complete the task accurately
+State explicitly: "I need [X] because [Y]" — not "I might need more context"
+
+## Output format
+[...]
+```
+
+### When to Apply This
+
+| Situation | Use iterative retrieval? |
+|-----------|------------------------|
+| Sub-agent modifies 1–2 known files | No — provide the files directly |
+| Sub-agent needs to understand system behavior | Yes — it may need to trace call graphs |
+| Sub-agent makes architectural decisions | Yes — always |
+| Sub-agent writes tests for existing code | Often — it needs to read what it's testing |
+
+The overhead is real (each cycle costs tokens and latency). Apply it to tasks where wrong assumptions would cost more than the retrieval — typically anything touching interfaces, contracts, or public APIs.
+
+> **Credit**: Iterative retrieval pattern for sub-agents from [Everything Claude Code](https://github.com/affaan-m/everything-claude-code) (Affaan Mustafa). The max-3-cycles bound and the WHY/WHAT separation are documented in their longform guide.
+
+---
+
 ## 10. Sources
 
 ### Official Anthropic Sources
@@ -1345,9 +1480,9 @@ echo "dist/" >> .gitignore
 ### Related Documentation
 
 - [Claude Code Releases](../core/claude-code-releases.md) — v2.1.32, v2.1.33 release notes
-- [Sub-Agents](../ultimate-guide.md#sub-agents) — Single-agent task delegation
-- [Multi-Instance Workflows](../ultimate-guide.md#multi-instance-workflows) — Manual parallel coordination
-- [Dual-Instance Pattern](../ultimate-guide.md#dual-instance-pattern) — Plan-execute split
+- [Sub-Agents](#split-role-sub-agents) — Single-agent task delegation
+- [Multi-Instance Workflows](#917-scaling-patterns-multi-instance-workflows) — Manual parallel coordination
+- [Dual-Instance Pattern](#alternative-pattern-dual-instance-planning-vertical-separation) — Plan-execute split
 - [AI Ecosystem: Beads Framework](../ecosystem/ai-ecosystem.md#beads-framework) — Alternative orchestration (Gas Town)
 
 ---

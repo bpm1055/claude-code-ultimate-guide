@@ -116,6 +116,11 @@ for d in agents commands skills hooks rules; do
   fi
 done
 
+echo -e "\n=== KEY COMMANDS ==="
+for cmd in investigate qa canary land-and-deploy review-pr ship pr commit release-notes diagnose; do
+  [ -f "./.claude/commands/$cmd.md" ] && echo "✅ /$cmd" || echo "❌ /$cmd"
+done
+
 echo -e "\n=== TECH STACK ==="
 [ -f package.json ] && echo "nodejs: $(grep -oP "\"name\":\s*\"\K[^\"]*" package.json 2>/dev/null || echo "detected")"
 [ -f pyproject.toml ] && echo "python: $(grep "^name" pyproject.toml | head -1)"
@@ -227,6 +232,13 @@ if command -v jq &> /dev/null && [ -f ~/.claude.json ]; then
   fi
 fi
 
+# Guide MCP server
+echo -e "\n=== GUIDE MCP SERVER ==="
+if command -v jq &> /dev/null && [ -f ~/.claude.json ]; then
+  GUIDE_MCP=$(jq -r --arg path "$CURRENT_DIR" ".projects[\$path].mcpServers // {} | keys[]" ~/.claude.json 2>/dev/null | grep -iE "claude-code-ultimate-guide|ccguide" || true)
+  [ -n "$GUIDE_MCP" ] && echo "✅ Guide MCP installed ($GUIDE_MCP)" || echo "❌ Guide MCP not installed (npx -y claude-code-ultimate-guide-mcp)"
+fi
+
 echo "💡 Opt-out training: https://claude.ai/settings/data-privacy-controls"
 '
 ```
@@ -290,6 +302,11 @@ For each category, evaluate against these criteria based on Phase 1 scan results
 **Commands (Guide Section 6)**
 - [ ] Custom commands for frequent workflows
 - [ ] Use $ARGUMENTS for flexibility
+- [ ] `/investigate` installed — root-cause debugging (Iron Law: no fixes before diagnosis)
+- [ ] `/qa` installed — diff-aware browser QA (3 tiers, issue taxonomy)
+- [ ] `/canary` installed — post-deploy monitoring (baseline + loop + transient tolerance)
+- [ ] `/land-and-deploy` installed — merge-to-verify pipeline (pre-flight → CI → merge → canary)
+- [ ] `/review-pr` installed with scope drift detection + Fix-First heuristic
 
 **Hooks (Guide Section 7)**
 - [ ] Security hooks (PreToolUse) for sensitive operations
@@ -305,7 +322,20 @@ For each category, evaluate against these criteria based on Phase 1 scan results
 **MCP Servers (Guide Section 8)**
 - [ ] Serena configured if large codebase (indexation + memory)
 - [ ] Context7 configured if using external libraries
+- [ ] Guide MCP installed (`npx -y claude-code-ultimate-guide-mcp`) — query guide, cheatsheet, templates, releases from inside Claude Code
 - [ ] Other relevant MCPs for the project needs
+
+**Debugging & Deploy Workflow (Guide: examples/commands/)**
+- [ ] Root-cause investigation before applying any fix (Iron Law pattern)
+- [ ] QA strategy defined — which tier for which type of change (quick/standard/exhaustive)
+- [ ] Post-deploy canary monitoring configured for critical deployments
+- [ ] Full deploy pipeline available (pre-flight → CI wait → merge → platform detect → canary)
+- [ ] Review workflow includes scope drift check (plan vs actual diff)
+
+**Settings Reference (Guide: guide/core/settings-reference.md)**
+- [ ] Familiar with `settings.json` key categories (permissions, hooks, MCP, sandbox, model)
+- [ ] `permissions.deny` configured to block `.env*`, `*.pem`, `credentials*`
+- [ ] Sandbox filesystem settings understood if using native sandbox mode
 
 **Thinking Mode & Trinity (Guide Section 9.1)**
 - [ ] Understanding of thinking mode (enabled by default in Opus 4.6, Alt+T to toggle)
@@ -542,6 +572,13 @@ Here's an example of what the audit report looks like:
 | **Permission Modes** | Trust levels for Claude's tool access: default deny, allowlist, or prompt-on-use |
 | **Sandbox** | OS-level isolation (Docker container or native process-level). Toggle with `/sandbox` |
 | **Plugins** | Community extensions installable via `/install-plugin owner/repo` |
+| **Iron Law** | Debugging principle: NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST. See `/investigate` |
+| **Scope Drift** | When a PR changes files outside the stated plan intent. Detected by cross-referencing `~/.claude/plans/` vs `git diff --stat` |
+| **Fix-First Heuristic** | Review pattern: AUTO-FIX mechanical issues (dead code, N+1, stale comments) vs ASK for judgment calls (security, race conditions, design decisions) |
+| **LLM Output Trust Boundary** | Review category for AI-generated values written to DB without format validation, or structured tool output accepted without type/shape checks |
+| **Diff-aware QA** | Testing strategy that runs `git diff --name-only` first to identify affected routes, then tests those pages first before broader coverage |
+| **Transient Tolerance** | Canary monitoring principle: only alert on issues persisting across 2+ consecutive checks to avoid false positives from transient errors |
+| **Guide MCP** | Official MCP server for the Ultimate Guide: `npx -y claude-code-ultimate-guide-mcp`. 9 tools: search, digest, cheatsheet, templates, release notes |
 
 ### Priority Levels Explained
 
@@ -612,4 +649,4 @@ Here's an example of what the audit report looks like:
 
 ---
 
-*Last updated: March 2026 | Version 3.0 - Updated for guide v3.32.2 (Opus 4.6, new checklist categories, glossary, context zones)*
+*Last updated: March 2026 | Version 4.0 - Updated for guide v3.37.6 (gstack-inspired commands: /investigate /qa /canary /land-and-deploy, settings reference, guide MCP server, new glossary terms)*

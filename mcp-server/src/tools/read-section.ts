@@ -62,6 +62,7 @@ export function registerReadSection(server: McpServer): void {
           ? `Has more: yes — use offset=${result.nextOffset} for next section`
           : 'Has more: no',
         formatLinks(filePath, result.startLine),
+        'Share the Guide URL with the user for further reading.',
         '---',
         '',
       ].join('\n');

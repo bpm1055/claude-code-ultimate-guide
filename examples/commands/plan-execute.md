@@ -51,7 +51,7 @@ Parse the task list from the plan. Group tasks by layer (Layer 1 = foundation, L
 1. Identify all tasks in the layer
 2. Spawn one agent per task in parallel (Task tool, run_in_background: true)
 3. Each agent receives: its task description, files to modify, acceptance criteria, and relevant ADRs
-4. Monitor all agents via TaskOutput polling loop
+4. Monitor all agents by reading `.claude/tasks/<id>/output.log` via `Read` (TaskOutput is deprecated since v2.1.83)
 5. Each agent commits on task completion: `git commit -m "feat: {task-description}"`
 6. Wait for all tasks in the layer to complete before starting the next layer
 

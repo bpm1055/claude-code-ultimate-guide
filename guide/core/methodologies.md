@@ -41,6 +41,39 @@ This is a quick reference for 15 structured development methodologies that have 
 
 ---
 
+## Methodology Map
+
+Where each methodology sits on two axes: **Spec-First vs Code-First** (Y) and **Lean/Solo vs Enterprise/Governed** (X).
+
+```
+                      SPEC / PLANNING FIRST
+                                ▲
+  ── lean · spec ──             │             ── governed · spec ──
+                                │
+  [Doc-Driven]  [SDD]           │    [BDD]  [ATDD]   [Req-Driven]
+  [GSD]  [Plan-First]           │ [CDD] [ADR-Driven]  [DDD]  [BMAD]
+                                │
+  LEAN ─────────────────────────┼────────────────────────────────► ENTERPRISE
+                                │
+  ── lean · code ──             │             ── governed · code ──
+                                │
+  [Context Eng.]   [TDD]        │       [Multi-Agent]
+  [Prompt Eng.]  [Iterative]    │       [Eval-Driven]       [FDD]
+  [Ralph Loop]                  │           [JiTTesting]
+                                │
+                         CODE / EMERGENT
+```
+
+**How to read it:**
+
+- **Top-left** — Spec-first lean: `SDD`, `Doc-Driven`, `Plan-First`. Natural entry point for solo devs and small teams moving away from "code first".
+- **Top-right** — Spec-first governed: `BMAD`, `Req-Driven`, `ATDD`, `DDD`. Real governance, but costly to set up. ROI is driven by project complexity and requirement stability, not headcount alone.
+- **Bottom-left** — Code-first lean: the natural Claude Code terrain. `TDD` + `Ralph Loop` + `Iterative` = core solo workflow.
+- **Bottom-right** — Code-first at scale: `Multi-Agent`, `Eval-Driven`, `JiTTesting` (Meta, 100M+ LoC). Emerging patterns for high-volume teams.
+- **On the axis** — `Plan-First`, `CDD`, `ADR-Driven`, `GSD`: hybrid approaches that adapt to any context.
+
+---
+
 ## The 15 Methodologies
 
 Organized in a 6-tier pyramid from strategic orchestration down to optimization techniques.
@@ -49,14 +82,14 @@ Organized in a 6-tier pyramid from strategic orchestration down to optimization 
 
 | Name | What | Best For | Claude Fit |
 |------|------|----------|------------|
-| **BMAD** | Multi-agent governance with constitution as guardrail | Enterprise 10+ teams, long-term projects | ⭐⭐ Niche but powerful |
+| **BMAD** | Multi-agent governance with constitution as guardrail | High-complexity projects with stable requirements, compliance or governance needs | ⭐⭐ Niche but powerful |
 | **GSD** | Meta-prompting 6-phase workflow with fresh contexts per task | Solo devs, Claude Code CLI | ⭐⭐ Similar to patterns in guide |
 
 **BMAD (Breakthrough Method for Agile AI-Driven Development)** inverts the traditional paradigm: documentation becomes the source of truth, not code. Uses specialized agents (Analyst, PM, Architect, Developer, QA) orchestrated with strict governance. *Note: BMAD's role-based agent naming reflects their methodology; see §9.17 Agent Anti-Patterns for scope-focused alternatives.*
 
 - **Key concept**: Constitution.md as strategic guardrail
 - **When to use**: Complex enterprise projects needing governance
-- **When to avoid**: Small teams, MVPs, rapid prototyping
+- **When to avoid**: MVPs, rapid prototyping, evolving requirements — BMAD is brittle when specs change mid-project
 
 **GSD (Get Shit Done)** addresses context rot through systematic 6-phase workflow (Initialize → Discuss → Plan → Execute → Verify → Complete) with fresh 200k-token contexts per task. Core concepts (multi-agent orchestration, fresh context management) overlap significantly with existing patterns like Ralph Loop, Gas Town, and BMAD. See [resource evaluation](../docs/resource-evaluations/gsd-evaluation.md) for detailed comparison.
 
@@ -130,7 +163,7 @@ Document your team's plan-first triggers:
 - NEVER skip: Changes affecting >2 modules
 ```
 
-**See also**: [Plan Mode documentation](./ultimate-guide.md#23-plan-mode) for `/plan` command usage.
+**See also**: [Plan Mode documentation](#23-plan-mode) for `/plan` command usage.
 
 > **Advanced pattern**: For an iterative annotation-based approach to plan-driven development, see [Custom Markdown Plans (Boris Tane Pattern)](./workflows/plan-driven.md#advanced-custom-markdown-plans-boris-tane-pattern).
 
@@ -202,13 +235,25 @@ This Gherkin scenario is the contract between intent and implementation. The age
 
 **CDD (Contract-Driven Development)** — API contracts (OpenAPI specs) as executable interface between teams. Patterns: Contract as Test, Contract as Stub.
 
+**JiTTesting (Just-in-Time Testing)** — Tests generated on-the-fly at PR submission, designed to fail, then discarded after merge. No maintenance cost, no test suite growth.
+
+TDD/BDD/ATDD all assume the developer controls the pace of code authoring. Agentic development breaks that assumption: an agent can generate 200 lines per hour, faster than any human test-writing workflow can keep up with. JiTTests are the industrial response to that mismatch.
+
+The mechanism: at PR time, an LLM infers the intent of the diff, generates code mutants (deliberately broken variants), writes tests that catch those mutants, runs ensemble rule-based and LLM assessors to filter false positives, and surfaces only real regressions to the engineer. The tests never land in the codebase.
+
+Meta deployed this at scale (100M+ LoC): 4x improvement in catching regressions over traditional hardening tests, 70% reduction in human review load, 4 serious production failures prevented from 41 candidates reviewed.
+
+No open-source implementation exists yet. You can approximate this today: before merging any agent-generated PR, prompt Claude with "generate tests that would catch regressions introduced by this diff specifically — I'll run them locally and discard them after the PR closes." The ephemeral framing focuses test generation on what actually changed rather than general coverage.
+
+> **Reference**: [Just-in-Time Catching Test Generation at Meta](https://arxiv.org/abs/2601.22832) — Harman, 2026.
+
 ---
 
 ### Tier 4: Feature Delivery
 
 | Name | What | Best For | Claude Fit |
 |------|------|----------|------------|
-| **FDD** | Feature-by-feature delivery | Large teams 10+ | ⭐⭐ Structure |
+| **FDD** | Feature-by-feature delivery | Feature teams with parallel delivery | ⭐⭐ Structure |
 | **Context Eng.** | Context as first-class design | Long sessions | ⭐⭐⭐ Fundamental |
 
 **FDD (Feature-Driven Development)** — Five processes:
@@ -370,7 +415,7 @@ vim docs/adr/001-database-migration.md
 - Structured Prompts: XML tags for organization
 - Position Matters: For long docs, place question at end
 
-**Fresh Context Pattern (Ralph Loop)** — Solves context rot by spawning fresh agent instances per task. State persists in git + progress files, not chat history. Ideal for long autonomous sessions (migrations, overnight runs). See [Ultimate Guide - Fresh Context Pattern](./ultimate-guide.md#fresh-context-pattern-ralph-loop) for implementation.
+**Fresh Context Pattern (Ralph Loop)** — Solves context rot by spawning fresh agent instances per task. State persists in git + progress files, not chat history. Ideal for long autonomous sessions (migrations, overnight runs). See [Ultimate Guide - Fresh Context Pattern](#fresh-context-pattern-ralph-loop) for implementation.
 
 ---
 
@@ -463,24 +508,24 @@ Recommended stacks by situation:
 | Team 5-10, greenfield | Spec Kit + TDD + BDD | Governance + quality + collaboration |
 | Microservices | CDD + Specmatic | Contract-first, parallel dev |
 | Existing SaaS (100+ features) | OpenSpec + BDD | Change tracking, no spec drift |
-| Enterprise 10+ | BMAD + Spec Kit + Specmatic | Full governance + contracts |
+| High-complexity / compliance | BMAD + Spec Kit + Specmatic | Full governance + contracts |
 | LLM-native product | Eval-Driven + Multi-Agent | Self-improving systems |
 
 ---
 
 ## Quick Reference Table
 
-| Methodology | Level | Primary Focus | Team Size | Learning Curve |
-|-------------|-------|---------------|-----------|----------------|
-| BMAD | Orchestration | Governance | 10+ | High |
+| Methodology | Level | Primary Focus | Best Context | Learning Curve |
+|-------------|-------|---------------|--------------|----------------|
+| BMAD | Orchestration | Governance | High complexity, stable requirements | High |
 | SDD | Specification | Contracts | Any | Medium |
 | Doc-Driven | Specification | Alignment | Any | Low |
-| Req-Driven | Specification | Context | 5+ | Medium |
-| DDD | Specification | Domain | 5+ | Very High |
-| BDD | Behavior | Collaboration | 5+ | Medium |
-| ATDD | Behavior | Compliance | 5+ | Medium |
-| CDD | Behavior | APIs | 5+ | Medium |
-| FDD | Delivery | Features | 10+ | Medium |
+| Req-Driven | Specification | Context | Complex requirements, many artifacts | Medium |
+| DDD | Specification | Domain | Complex business domain | Very High |
+| BDD | Behavior | Collaboration | Multi-role stakeholder involvement | Medium |
+| ATDD | Behavior | Compliance | Regulated, explicit acceptance criteria | Medium |
+| CDD | Behavior | APIs | Service boundaries, parallel teams | Medium |
+| FDD | Delivery | Features | Feature teams, parallel delivery | Medium |
 | Context Eng. | Delivery | AI sessions | Any | Low |
 | TDD | Implementation | Quality | Any | Low |
 | Eval-Driven | Implementation | AI outputs | Any | Medium |

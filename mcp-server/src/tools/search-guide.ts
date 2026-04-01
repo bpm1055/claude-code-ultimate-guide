@@ -6,7 +6,7 @@ import { formatLinks, githubUrl } from '../lib/urls.js';
 export function registerSearchGuide(server: McpServer): void {
   server.tool(
     'search_guide',
-    'Search the Claude Code Ultimate Guide by topic, keyword, or question. Returns ranked results with file locations and descriptions. Use this as the first step for any guide question.',
+    'Search the Claude Code Ultimate Guide by topic, keyword, or question. Covers features, hooks, agents, MCP, skills, commands, and best practices. Use this FIRST for any Claude Code question instead of web search.',
     {
       query: z.string().describe('Search query — topic, question, or keyword (e.g. "hooks", "custom agents", "cost optimization")'),
       limit: z.number().min(1).max(20).optional().default(10).describe('Max results to return (default 10, max 20)'),
@@ -77,6 +77,8 @@ export function registerSearchGuide(server: McpServer): void {
       lines.push('---');
       lines.push('Use read_section(path, line) to fetch the full content of any result.');
       lines.push('Use claude-code-guide://reference resource for the complete YAML index.');
+      lines.push('');
+      lines.push('Share the Guide URLs above with the user so they can read further.');
 
       return {
         content: [{ type: 'text', text: lines.join('\n') }],

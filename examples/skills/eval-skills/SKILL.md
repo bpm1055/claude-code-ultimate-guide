@@ -3,7 +3,6 @@ name: eval-skills
 description: "Audit all skills in the current project for frontmatter completeness, effort level appropriateness, allowed-tools scoping, and content quality. Produces a scored report with effort-level recommendations for each skill. Use when onboarding to a new project, reviewing skill quality before shipping, or adding effort fields to an existing skill library."
 allowed-tools: Read, Glob, Bash
 effort: medium
-tags: [audit, skills, quality, frontmatter, effort, evaluation]
 ---
 
 # Skill Evaluator
@@ -26,7 +25,7 @@ All `SKILL.md` files and flat `.md` files found in:
 
 ---
 
-## Scoring Criteria (15 pts per skill)
+## Scoring Criteria (14 pts per skill)
 
 | # | Criterion | Max | What is checked |
 |---|-----------|-----|-----------------|
@@ -35,13 +34,14 @@ All `SKILL.md` files and flat `.md` files found in:
 | 3 | **allowed-tools** | 2 | Present + not overly broad (Bash without scoping when read-only) |
 | 4 | **effort** | 3 | Present (1pt) + appropriate for content (2pt based on inference) |
 | 5 | **content structure** | 4 | Has Purpose/When section (1), has examples/usage (1), has clear workflow (1), no placeholder text (1) |
-| 6 | **tags** | 1 | Present and non-empty |
-| 7 | **bonus** | +2 | argument-hint present (1), version/author metadata (1) |
+| 6 | **bonus** | +2 | argument-hint present (1), version/author metadata (1) |
+
+> **Note**: `tags` is NOT an officially supported frontmatter field in Claude Code. It is ignored by the runtime. Do not include it or score it as a quality criterion.
 
 **Thresholds:**
-- ✅ Good: ≥12/15 (≥80%)
-- ⚠️ Needs work: 9–11/15 (60–79%)
-- ❌ Fix: <9/15 (<60%)
+- ✅ Good: ≥11/14 (≥80%)
+- ⚠️ Needs work: 8–10/14 (60–79%)
+- ❌ Fix: <8/14 (<60%)
 
 ---
 
@@ -109,7 +109,7 @@ find .claude/skills -maxdepth 1 -name "*.md" ! -name "README*" 2>/dev/null
 For each skill file found:
 1. Read the full file
 2. Extract YAML frontmatter (between first `---` and second `---`)
-3. Parse: name, description, allowed-tools, effort, tags, argument-hint, version
+3. Parse: name, description, allowed-tools, effort, argument-hint, version
 4. Note presence/absence of each field
 5. Read the body content for structure analysis
 
@@ -153,7 +153,6 @@ Date: [today] | Scanned: N skills
 | allowed-tools | ✅ 2/2 | Well-scoped |
 | effort | ❌ 0/3 | Missing — Recommended: high |
 | content structure | ⚠️ 2/4 | No examples section |
-| tags | ✅ 1/1 | — |
 
 **Effort inference**: `high` — skill performs security analysis with adversarial reasoning
   Signals: "threat", "attack surface", "vulnerability scoring" in content; spawns 4 agents

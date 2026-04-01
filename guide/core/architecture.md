@@ -70,12 +70,14 @@ Before diving into the technical details, this diagram by Mohamed Ali Ben Salem 
 4. [Sub-Agent Architecture](#4-sub-agent-architecture)
 5. [Permission & Security Model](#5-permission--security-model)
 6. [MCP Integration](#6-mcp-integration)
-7. [The Edit Tool: How It Actually Works](#7-the-edit-tool-how-it-actually-works)
-8. [Session Persistence](#8-session-persistence)
-9. [Philosophy: Less Scaffolding, More Model](#9-philosophy-less-scaffolding-more-model)
-10. [Claude Code vs Alternatives](#10-claude-code-vs-alternatives)
-11. [Sources & References](#11-sources--references)
-12. [Appendix: What We Don't Know](#12-appendix-what-we-dont-know)
+7. [Advanced Tool Use Patterns (API)](#7-advanced-tool-use-patterns-api)
+8. [The Edit Tool: How It Actually Works](#8-the-edit-tool-how-it-actually-works)
+9. [Session Persistence](#9-session-persistence)
+10. [Philosophy: Less Scaffolding, More Model](#10-philosophy-less-scaffolding-more-model)
+11. [Claude Code vs Alternatives](#11-claude-code-vs-alternatives)
+12. [Sources & References](#12-sources--references)
+13. [Appendix: What We Don't Know](#13-appendix-what-we-dont-know)
+
 
 ---
 
@@ -172,7 +174,7 @@ Use this checklist to verify you understand Claude Code's full surface area. Eac
 
 - [ ] **Skill-Scoped Hooks** — Event hooks specific to skill execution context
   - Lifecycle management per skill
-  - See: [Ultimate Guide Section 5.11](./ultimate-guide.md#511-skills)
+  - See: [Ultimate Guide Section 5.11](#51-understanding-skills)
 
 - [ ] **Background Agents** — Async task execution (test suites, long operations)
   - Non-blocking agent spawning
@@ -184,7 +186,7 @@ Use this checklist to verify you understand Claude Code's full surface area. Eac
 
 - [ ] **Plan Subagent** — `/plan` for read-only planning mode
   - Safe architectural exploration
-  - See: [Ultimate Guide Section 2.3](./ultimate-guide.md#23-plan-mode)
+  - See: [Ultimate Guide Section 2.3](#23-plan-mode)
 
 - [ ] **Task Tool** — Hierarchical task delegation to specialized agents
   - Parallel task execution, depth=1 sub-agents
@@ -192,7 +194,7 @@ Use this checklist to verify you understand Claude Code's full surface area. Eac
 
 - [ ] **Agent Teams** — Multi-agent parallel coordination (experimental v2.1.32+)
   - Git-based coordination, autonomous task claiming
-  - See: [Ultimate Guide Section 9.20](./ultimate-guide.md#920-agent-teams)
+  - See: [Ultimate Guide Section 9.20](#920-agent-teams-multi-agent-coordination)
 
 - [ ] **Per-Task Model Selection** — Dynamic model switching mid-session
   - `/model opus|sonnet|haiku` on task boundaries
@@ -761,7 +763,7 @@ Hooks allow programmatic control over Claude's actions:
 
 Common fields sent to all events: `session_id`, `transcript_path`, `cwd`, `permission_mode`, `hook_event_name`. Event-specific fields (e.g., `tool_name`/`tool_input` for PreToolUse) are added on top.
 
-→ **Cross-reference**: See [Section 7 - Hooks](./ultimate-guide.md#7-hooks) in the main guide for complete examples.
+→ **Cross-reference**: See [Section 7 - Hooks](#7-hooks) in the main guide for complete examples.
 
 ---
 
@@ -839,7 +841,7 @@ MCP (Model Context Protocol) servers extend Claude Code with additional tools.
 | Modify Claude's system prompt | Tools only, no prompt injection |
 | Bypass permissions | Same security layer as native tools |
 
-→ **Cross-reference**: See [Section 8.6 - MCP Security](./ultimate-guide.md#86-mcp-security) for security considerations.
+→ **Cross-reference**: See [Section 8.6 - MCP Security](#86-mcp-security) for security considerations.
 
 ### MCP Extensions: Apps (SEP-1865)
 
@@ -916,7 +918,7 @@ MCP Apps is the **first official extension** to the Model Context Protocol, enab
 | **User consent** | Optional requirement for UI-initiated tool calls |
 | **Content blocking** | Hosts can reject suspicious resources pre-render |
 
-→ **Cross-reference**: See [Section 8.6 - MCP Security](./ultimate-guide.md#86-mcp-security) for broader MCP security considerations.
+→ **Cross-reference**: See [Section 8.6 - MCP Security](#86-mcp-security) for broader MCP security considerations.
 
 #### SDK: @modelcontextprotocol/ext-apps
 
@@ -1114,7 +1116,130 @@ ENABLE_TOOL_SEARCH=false     # Disabled (eager loading)
 
 ---
 
-## 7. The Edit Tool: How It Actually Works
+## 7. Advanced Tool Use Patterns (API)
+
+**Confidence**: 90% (Tier 1 - Official Anthropic Engineering)
+**Source**: [Anthropic Engineering: Advanced Tool Use](https://www.anthropic.com/engineering/advanced-tool-use) | [Programmatic Tool Calling Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling)
+
+Four API-level features released as generally available on February 18, 2026 (with Opus/Sonnet 4.6). These are relevant to developers building agents on the Anthropic API or Agent SDK — not available directly in the Claude Code CLI.
+
+| Feature | Problem Solved | Availability |
+|---------|---------------|--------------|
+| Programmatic Tool Calling (PTC) | Agent loops burn tokens on round trips | API + Foundry |
+| Dynamic Filtering | Web search bloats context with noise | API + Foundry |
+| Tool Search Tool | Too many tool definitions bloat context | API + Foundry |
+| Tool Use Examples | Schema alone can't express usage patterns | API + Foundry |
+
+**Strategic layering** — address your biggest bottleneck first:
+- Context bloated by tool definitions → Tool Search Tool
+- Large intermediate results → Programmatic Tool Calling
+- Web research returning noise → Dynamic Filtering
+- Parameter errors despite correct schema → Tool Use Examples
+
+### Programmatic Tool Calling (PTC)
+
+**The paradigm shift**: instead of calling tools one at a time with a full model round trip each, Claude writes Python code that orchestrates all tool calls internally. Only the final `stdout` enters the context window.
+
+```
+Traditional: prompt → Claude → tool 1 → response 1 → Claude → tool 2 → response 2 → Claude → answer
+             (3 tools = 3 inference passes, 3× intermediate results in context)
+
+PTC:         prompt → Claude → writes Python → code calls tool 1, 2, 3 → stdout → Claude → answer
+             (3 tools = 1 inference pass, only final output in context)
+```
+
+**Configuration** — mark tools callable from the code execution sandbox with `allowed_callers`:
+
+```json
+{
+  "tools": [
+    { "type": "code_execution_20250825", "name": "code_execution" },
+    {
+      "name": "query_database",
+      "description": "Execute SQL. Returns rows as JSON: id (str), name (str), revenue (float).",
+      "input_schema": {
+        "type": "object",
+        "properties": { "sql": { "type": "string" } },
+        "required": ["sql"]
+      },
+      "allowed_callers": ["code_execution_20250825"]
+    }
+  ]
+}
+```
+
+| `allowed_callers` value | Behavior |
+|-------------------------|----------|
+| omitted / `["direct"]` | Traditional calling only |
+| `["code_execution_20250825"]` | Callable from Python sandbox only |
+| `["direct", "code_execution_20250825"]` | Both modes — not recommended (confuses Claude) |
+
+**Patterns** (all run in 1 inference pass):
+- Batch processing: loop over N items, aggregate, print summary
+- Early termination: break as soon as success criteria are met
+- Conditional tool selection: pick lightweight vs heavy tool based on intermediate result
+- Data filtering: reduce what Claude sees (`errors = [l for l in logs if "ERROR" in l]`)
+
+**Token efficiency**: tool results from programmatic calls never enter Claude's context — only final `stdout` does. 10 programmatic tool calls ≈ 1/10th the context tokens of 10 direct calls. The ~37% overall token reduction claim is community-reported (Shayan Tabe's analysis) and not officially confirmed by Anthropic.
+
+**Constraints**: API and Foundry only (not Bedrock/Vertex). No MCP tools, no web search/fetch, no `strict: true` tools. Container lifetime ~4.5 minutes. Not covered by Zero Data Retention.
+
+### Dynamic Filtering for Web Search/Fetch
+
+Web search and fetch tools dump full HTML into context — navigation, ads, boilerplate included. Dynamic Filtering lets Claude write Python to pre-process and filter results before they enter its context window.
+
+**Configuration** — use updated tool type versions with a beta header:
+
+```json
+{
+  "tools": [
+    { "type": "web_search_20260209", "name": "web_search" },
+    { "type": "web_fetch_20260209", "name": "web_fetch" }
+  ]
+}
+```
+
+Header required: `anthropic-beta: code-execution-web-tools-2026-02-09`. Filtering is enabled by default when using these tool type versions with Sonnet 4.6 or Opus 4.6.
+
+**Official benchmark results** (Anthropic, BrowseComp dataset):
+
+| Model | Without Filtering | With Filtering | Improvement |
+|-------|-------------------|----------------|-------------|
+| Sonnet 4.6 | 33.3% | 46.6% | +13.3 pp |
+| Opus 4.6 | 45.3% | 61.6% | +16.3 pp |
+
+Average input token reduction: ~24%. Best suited for multi-step research, citation verification, and extracting specific data points from large pages.
+
+### Tool Use Examples
+
+JSON schemas define structure but can't express when to include optional parameters, which combinations make sense, or format conventions. Add `input_examples` to tool definitions to show concrete usage patterns:
+
+```json
+{
+  "name": "create_ticket",
+  "input_schema": { ... },
+  "input_examples": [
+    { "title": "Login page 500 error", "priority": "critical", "assignee": "oncall-team", "labels": ["bug", "auth"] },
+    { "title": "Add dark mode", "priority": "low", "labels": ["feature-request"] },
+    { "title": "Update API docs for v2" }
+  ]
+}
+```
+
+Accuracy on complex parameter handling: 72% → 90% in Anthropic's benchmarks. Use 1-5 realistic examples per tool, covering minimal, partial, and full specifications.
+
+### Claude Code Relevance
+
+| Feature | Claude Code CLI | Action for CLI users |
+|---------|----------------|---------------------|
+| Tool Search (MCP lazy loading) | Built-in since v2.1.7 as MCPSearch auto mode | Tune `ENABLE_TOOL_SEARCH=auto:N` — documented in §6 above |
+| Tool Use Examples | Not configurable from CLI | Relevant for custom MCP server authors — add `input_examples` to tool schemas |
+| Programmatic Tool Calling | Not available in CLI | Relevant for Agent SDK developers building custom agents |
+| Dynamic Filtering | Not available in CLI | Relevant for Agent SDK users doing web research pipelines |
+
+---
+
+## 8. The Edit Tool: How It Actually Works
 
 **Confidence**: 90% (Tier 2 - Verified through behavior)
 **Sources**:
@@ -1187,7 +1312,7 @@ Before applying changes, the Edit tool:
 
 ---
 
-## 8. Session Persistence
+## 9. Session Persistence
 
 **Confidence**: 100% (Tier 1 - Official)
 **Source**: [code.claude.com/docs](https://code.claude.com/docs/en/setup)
@@ -1224,7 +1349,7 @@ Sessions appear to be stored as JSON/JSONL files in `~/.claude/` but:
 
 ---
 
-## 9. Philosophy: Less Scaffolding, More Model
+## 10. Philosophy: Less Scaffolding, More Model
 
 **Confidence**: 100% (Tier 1 - Official)
 **Source**: Daniela Amodei (Anthropic Co-founder & President) - Public statements
@@ -1270,21 +1395,21 @@ This convergence suggests that the "less scaffolding, more model" approach scale
 
 ---
 
-## 10. Claude Code vs Alternatives
+## 11. Claude Code vs Alternatives
 
-**Confidence**: 70% (Tier 3 - Based on public information)
-**Sources**: Various 2024-2025 comparisons, official documentation
+**Confidence**: 80% (Tier 2 - Based on March 2026 fact-checked data)
+**Sources**: Official documentation, Perplexity research March 2026, vendor changelogs
 
-| Dimension | Claude Code | GitHub Copilot Workspace | Cursor | Amazon Q Developer |
-|-----------|-------------|-------------------------|--------|-------------------|
-| **Architecture** | while(tool) loop | Cloud-based planning | Event-driven + cloud | AWS-integrated agents |
-| **Execution** | Local terminal | Cloud sandbox | Local + cloud | Cloud/local hybrid |
-| **Model** | Claude (single) | GPT-4 variants | Multiple (adaptive) | Amazon Titan + others |
-| **Context** | ~200K tokens | Limited | Limited | Varies |
+| Dimension | Claude Code | GitHub Copilot | Cursor | Amazon Q Developer |
+|-----------|-------------|----------------|--------|-------------------|
+| **Architecture** | while(tool) loop | IDE agent + cloud coding agent | Event-driven + cloud | AWS-integrated agents |
+| **Execution** | Local terminal | Local (agent mode) + cloud VMs | Local + cloud | Cloud/local hybrid |
+| **Model** | Claude (single provider) | GPT, Claude, Codex (selectable) | Multiple (adaptive) | Amazon Titan + others |
+| **Context** | ~200K tokens | Full codebase (agent mode) | Codebase-aware (Composer) | Varies (AWS-scoped) |
 | **Transparency** | High (visible reasoning) | Medium | Medium | Low |
-| **Customization** | CLAUDE.md + hooks | Limited | Plugins | AWS integration |
-| **MCP Support** | Native | No | Some servers | No |
-| **Pricing** | Pro/Max tiers | GitHub subscription | Per-seat | AWS-integrated |
+| **Customization** | CLAUDE.md + hooks + MCP | AGENTS.md, MCP (GA), custom agents | MCP Apps, .cursorrules | MCP (native), AWS integration |
+| **MCP Support** | Native | Yes (GA, auto-approve) | Yes (MCP Apps v2.6) | Yes (native) |
+| **Pricing** | Pro $20 / Max $100-200 | Free / Pro $10 / Pro+ $39 / Biz $19/seat | Free / Pro $20 / Biz $40/seat | Free / Pro $19/seat / Enterprise |
 
 ### When to Choose Claude Code
 
@@ -1299,7 +1424,7 @@ This convergence suggests that the "less scaffolding, more model" approach scale
 
 ---
 
-## 11. Sources & References
+## 12. Sources & References
 
 ### Tier 1 - Official Anthropic
 
@@ -1332,7 +1457,7 @@ This convergence suggests that the "less scaffolding, more model" approach scale
 
 ---
 
-## 12. Appendix: What We Don't Know
+## 13. Appendix: What We Don't Know
 
 Transparency about gaps in our understanding:
 
