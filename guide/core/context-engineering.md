@@ -27,6 +27,7 @@ This guide covers everything from the token math behind context budgets to build
 7. [Quality Measurement](#7-quality-measurement)
 8. [Context Reduction Techniques](#8-context-reduction-techniques)
 9. [Maturity Assessment](#9-maturity-assessment)
+10. [Token Audit Workflow](#10-token-audit-workflow)
 
 ---
 
@@ -57,6 +58,31 @@ These terms are often conflated. The distinction matters:
 **Prompt engineering** is about crafting the right question for one task. **Context engineering** is the system that ensures Claude has the right background knowledge before any task begins. You can have excellent prompts on top of poor context engineering and still get mediocre results — because the model lacks the structural understanding of your project, conventions, and constraints.
 
 A practical analogy: prompt engineering is writing a good email to a contractor. Context engineering is the onboarding process, code style guide, architecture documentation, and team norms that ensure the contractor understands the project before reading a single email.
+
+### Context Engineering vs. Context Optimization
+
+Both terms appear in the literature and are sometimes used interchangeably. They are not the same.
+
+| Dimension | Context Engineering | Context Optimization |
+|-----------|--------------------|--------------------|
+| Core question | What information should be in context? | What is the minimum set of high-signal tokens that maximizes the outcome? |
+| Goal | Completeness and correctness | Efficiency and signal density |
+| Method | Identify what the model needs to know | Remove everything it does not need to know |
+| Failure mode | Missing critical information | Overshooting — too much irrelevant content |
+| Output | A context system | A trimmed, high-fidelity prompt or config |
+
+A useful mental model: context engineering answers "what to include," context optimization answers "what to cut."
+
+In practice, you do both. The engineering pass builds the complete picture: architecture decisions, conventions, constraints. The optimization pass prunes it: removes redundancy, compresses verbose rules, archives outdated entries, path-scopes subsystem-specific content. The reduction techniques in Section 8 are the optimization pass.
+
+**Synthesis vs. reasoning**
+
+A related distinction worth naming explicitly:
+
+- **Context synthesis** is stateful and iterative. It accumulates knowledge across sessions, updates when conventions change, and reflects project history. CLAUDE.md is context synthesis.
+- **Reasoning** is ephemeral and disposable. Each inference step uses the context to produce an output, then discards the intermediate state. Claude's chain-of-thought is reasoning.
+
+Treating reasoning artifacts (intermediate thoughts, debug traces, error outputs) as context synthesis material is a common mistake. It pollutes the context with ephemeral state and accelerates context rot. Separate what should persist (synthesis) from what should be discarded (reasoning noise).
 
 ### Why It Matters
 
@@ -98,6 +124,39 @@ As you move toward agent workflows, a second category appears: *dynamic context*
 In practice, every Claude Code session uses both. The static context (your configuration) sets the behavioral envelope; the dynamic context (files Claude reads, tool results it processes) provides the specific information for each task. Context engineering covers both, but the failure modes differ: static context problems manifest as consistent convention violations; dynamic context problems manifest as Claude acting on stale or incomplete information mid-task.
 
 For teams building automated pipelines and agents, Anthropic's September 2025 engineering post ["Effective context engineering for AI agents"](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) covers the dynamic side in depth.
+
+### Why Context Rot is Structural, Not Accidental
+
+Transformer models attend to all tokens pairwise. That means the number of attention relationships in a context window grows as n², not n. Double the context length and you quadruple the number of relationships the model must weigh. At 200K tokens, this means billions of pairwise computations, and the model's attention becomes increasingly diffuse.
+
+This is not a bug that future models will eliminate. It is a consequence of the architecture itself. Context rot, the progressive degradation of instruction adherence as context grows, is structurally baked in. The implication: you cannot solve context rot by relying on a larger context window. You solve it by keeping context lean and loading information just in time.
+
+**Just-in-time retrieval vs. pre-loading**
+
+There are two strategies for giving Claude the information it needs:
+
+| Strategy | Mechanism | When to use |
+|----------|-----------|-------------|
+| **Pre-loading (RAG)** | Retrieve and inject all potentially relevant context before inference | Known, stable context requirements |
+| **Just-in-time retrieval** | Retrieve context on demand, exactly when and only when needed | Dynamic, task-specific context |
+
+Pre-loading is the familiar RAG pattern: build a retrieval index, pull relevant chunks into the prompt upfront. It works when you know in advance what information the model will need.
+
+Just-in-time retrieval is more demanding to implement but more effective at scale: the model retrieves information dynamically as the task demands it, using tool calls, MCP servers, or file reads. Only the information needed for the current step is in context.
+
+Claude Code's behavior reflects this pattern: CLAUDE.md loads upfront (pre-loaded, always relevant), while file contents and tool results are retrieved at inference time via `read_file`, `glob`, `grep`, and MCP calls. The glob and grep tools are the JIT retrieval layer. They put specific file contents into context only when a task touches those files.
+
+**Memory tool (beta)**
+
+As of Claude Sonnet 4.5, Anthropic released a Memory tool in public beta. It allows Claude to store and retrieve persistent facts across sessions without manual CLAUDE.md management. The tool maintains a structured knowledge store that Claude queries when relevant context is needed.
+
+This is distinct from CLAUDE.md: CLAUDE.md is static configuration (always loaded), while the Memory tool is dynamic retrieval (queried on demand). For teams building agents, the Memory tool reduces the need to manually encode knowledge in config files.
+
+**Chain-of-thought in long tasks**
+
+Chain-of-thought (CoT) prompting improves model reasoning on isolated tasks. However, Anthropic's engineering data shows it can hurt performance in long agentic tasks. The mechanism: CoT generates additional tokens, which extend context length, which accelerates context rot for subsequent steps. On tasks spanning 20+ tool calls, this effect is measurable.
+
+The practical rule: use CoT for complex isolated reasoning steps, not as a blanket strategy for agentic workflows. In long runs, prefer compressed intermediate outputs over extended reasoning traces.
 
 ---
 
@@ -275,6 +334,27 @@ Later layers override earlier ones. A session instruction can override a project
 @prisma/CLAUDE-db.md
 ```
 
+**The Goldilocks problem: altitude**
+
+Two failure modes appear consistently in production CLAUDE.md files:
+
+**Too vague**: "Write clean code," "Follow best practices," "Keep functions small." These instructions pass through the model without changing behavior. The model already has a concept of "clean code" that predates your instruction, and it defaults to that concept, which may not match what your project needs. Aspirational rules are ignored.
+
+**Too granular**: "Use 2-space indentation," "Add a blank line after import blocks," "Prefix private methods with underscore." These are linter rules, not cognitive decisions. They belong in `.eslintrc`, `.editorconfig`, or `prettier.config.js`, enforced deterministically by tools, not probabilistically by an LLM. Putting them in CLAUDE.md wastes context budget and produces unreliable enforcement.
+
+**The productive altitude**: Capture decisions the model would make differently without the instruction. The test is: "Would Claude, with no project context, reasonably do something different here?" If yes, the rule belongs in CLAUDE.md. If the answer is aspirational, cut it. If a linter enforces it, cut it.
+
+| Altitude | Example | Verdict |
+|----------|---------|---------|
+| Too vague | "Write clean code" | Cut — model ignores, no behavior change |
+| Too vague | "Follow best practices for security" | Cut — replace with specific constraints |
+| Productive | "Never expose raw database IDs in API responses; use UUIDs" | Keep — specific, model would default otherwise |
+| Productive | "Use the Result<T, E> pattern for service functions, not try/catch" | Keep — specific, overrides a common default |
+| Too granular | "Use 2-space indentation" | Cut — delegate to Prettier |
+| Too granular | "Add JSDoc comments to every function" | Cut — delegate to a lint rule |
+
+The architecture choices, quality standards, and explicit "what not to do and why" rules are the productive altitude. The aspirational and the mechanical are noise.
+
 ### Session Configuration
 
 **Mechanism**: Inline instructions, `/add-dir`, or system prompt flags for the current session.
@@ -412,6 +492,15 @@ Putting the endpoint creation procedure in a rule would mean loading 40 lines of
 **Rule**: `Never expose raw database IDs in API responses.`
 **Skill**: `How to generate and use UUID-based public identifiers for entities.`
 
+**Community skill libraries**
+
+Pre-built skill collections reduce the upfront investment in modular context engineering:
+
+- `anthropics/claude-code-skills` (official): Anthropic-maintained skill templates covering common development workflows
+- `ibelick/ui-skills`: UI component and design system skills for frontend projects
+
+These can be cloned, inspected, and adapted to your project conventions rather than built from scratch. Treat them as starting points — fork and modify to match your stack and naming conventions rather than using them verbatim.
+
 ### Progressive Disclosure
 
 The principle: don't load everything upfront. Load what is needed for the task at hand.
@@ -440,6 +529,28 @@ The principle: don't load everything upfront. Load what is needed for the task a
 ```
 
 Each skill file contains the step-by-step procedure with project-specific patterns. Claude loads it when the task type is detected, not proactively.
+
+**MCP tool count and context budget**
+
+MCP servers inject tool definitions into the system prompt. Each server adds its tool schemas, which consume context budget before any user content appears. Anthropic's engineering guidance recommends:
+
+- Fewer than 10 MCP servers active per project
+- Fewer than 80 total tools across all active servers
+
+Beyond these thresholds, tool definition overhead measurably reduces the tokens available for actual task content. At 80+ tools, you are burning 15-20K tokens on tool schemas alone — budget that would otherwise go to code context, conversation history, and file contents.
+
+The progressive disclosure principle applies to MCP servers as much as to rules. Load MCP servers contextually rather than activating all available servers for every project:
+
+```json
+{
+  "mcpServers": {
+    "database": { },
+    "github": { }
+  }
+}
+```
+
+Resist the pattern of adding every available MCP server to a project's settings "just in case." Each inactive-but-loaded server is pure overhead. If a server is used in fewer than 20% of sessions in a project, it should not be in the default project config.
 
 ### Anti-Pattern: The Monolithic CLAUDE.md
 
@@ -908,6 +1019,44 @@ Generate 3-5 candidate rules for CLAUDE.md based on this session.
 
 This takes 2-3 minutes and generates concrete improvement candidates. You review them and decide which to add. Over time, this is how configuration systems accumulate genuine project knowledge rather than just generic rules.
 
+### Context Chaining
+
+Context chaining is a pattern where the output of one context window becomes the structured input of the next. Each session builds on the previous one, passing a curated summary forward rather than discarding state.
+
+This is distinct from the Session-per-Concern pipeline (in the Fresh Context Pattern section), which separates concerns into isolated sessions. Context chaining allows perspectives to accumulate: each session's insights enrich the next session's starting context.
+
+**Pattern structure**:
+
+```
+Session 1:
+  Input: Task definition + CLAUDE.md
+  Work: Research, exploration, initial implementation
+  Output: summary.md (decisions, open questions, validated patterns)
+
+Session 2:
+  Input: Task definition + CLAUDE.md + summary.md from Session 1
+  Work: Implementation building on Session 1 findings
+  Output: updated summary.md + code artifacts
+
+Session 3:
+  Input: Task definition + CLAUDE.md + updated summary.md
+  Work: Review, refinement, integration
+  Output: final artifacts + lessons.md for CLAUDE.md update
+```
+
+The key discipline: the summary passed forward must be curated, not a raw transcript. Raw transcripts reintroduce context rot. A curated summary is 200-500 tokens of distilled findings: decisions made, approaches validated, dead ends marked.
+
+**When to use**:
+- Multi-day tasks where rebuilding context from scratch each session would be expensive
+- Research tasks where early sessions produce findings that constrain later sessions
+- Iterative design tasks where accumulated understanding matters across sessions
+
+**When not to use**:
+- Tasks with clean atomic boundaries (one session, one deliverable, fresh start next)
+- Situations where early session assumptions turned out wrong and you want a clean break
+
+Context chaining extends context intentionally. It is the opposite of the Ralph Loop, which discards state. Use chaining when accumulated understanding is an asset; use the Ralph Loop when accumulated state is a liability.
+
 ---
 
 ## 7. Quality Measurement
@@ -1051,6 +1200,56 @@ TOTAL_RULES=$(grep -c "^- " CLAUDE.md 2>/dev/null || echo 0)
 echo "Total rules: $TOTAL_RULES"
 echo "Run conflict audit manually or with Claude"
 ```
+
+### Context Drift Detection
+
+The existing adherence metrics (canary checks, violation rates) require human interpretation: you know a rule is being violated when you notice it. Systematic drift detection is a complementary layer that detects behavioral shifts automatically, before they surface as bad outputs.
+
+These methods come from ML observability. They are more relevant for teams running Claude in automated pipelines than for interactive use, but the concepts apply in both contexts.
+
+**Cosine distance method**
+
+The simplest production-ready approach. Embed model outputs (responses to fixed probe prompts) and measure cosine distance from a known-good baseline embedding.
+
+1. Define 5-10 fixed probe prompts that test key conventions (equivalent to canary prompts).
+2. At a stable point ("golden baseline"), capture outputs and compute their embeddings.
+3. On each subsequent run, compute outputs for the same prompts and measure cosine distance from baseline.
+4. Alert when average distance exceeds a threshold (typically 0.15-0.20 for sentence-level embeddings).
+
+What this catches: gradual style drift, convention erosion, changes in output structure — all before violation rates increase.
+
+**Share of drifted features**
+
+More granular than cosine distance. Instead of a single distance metric, track which specific embedding dimensions have shifted beyond a threshold. This tells you which aspects of the output have changed (length, formality, code style) rather than just that something changed.
+
+Practical implementation requires an embedding model and a monitoring store. Start with cosine distance; add feature-level tracking only if you need to diagnose what is drifting.
+
+**Maximum Mean Discrepancy (MMD)**
+
+A kernel-based method for comparing two distributions of outputs. MMD answers: "Are the outputs from this period statistically different from the baseline period?" It handles high-dimensional embeddings robustly and does not require specifying which features to track.
+
+MMD is more setup cost than cosine distance but produces fewer false positives when output variance is naturally high. Relevant for teams with significant output volume (hundreds of Claude runs per day).
+
+**Statistical distance thresholds**
+
+Regardless of method, thresholds matter:
+
+| Distance metric | Alert threshold | Note |
+|----------------|-----------------|------|
+| Cosine distance | > 0.15 | Works for most sentence embeddings |
+| Euclidean distance | Varies by dimensionality | Normalize embeddings first |
+| Manhattan distance | Varies by dimensionality | More robust to outliers than Euclidean |
+
+These are starting points. Calibrate against your baseline variance: if your outputs naturally vary widely (creative tasks), use a looser threshold.
+
+**When to use drift detection**
+
+- Automated pipelines where human review is not per-output
+- After CLAUDE.md changes, to verify behavior stayed stable
+- When upgrading Claude model versions (behavior shifts between versions)
+- Regression detection after any context configuration change
+
+For interactive development with regular human review, canary checks and violation rate tracking (already above) are sufficient.
 
 ### Useful Metrics to Track Over Time
 
@@ -1236,6 +1435,195 @@ Most teams move from Level 0 to Level 2 in a single afternoon. Moving from Level
 
 ---
 
+## 10. Token Audit Workflow
+
+Context engineering theory only converts to real gains once you measure your actual overhead. Most developers discover they are loading 40-60K tokens of fixed context before any user task begins — configuration files, rules, hooks output, memory files, and the Claude Code system prompt all compound. This section provides a reproducible audit workflow that takes under five minutes and produces an actionable plan.
+
+### What Counts as Fixed Context
+
+Every session starts with a baseline of tokens that Claude loads before processing a single user message:
+
+| Component | Loaded when | Typical size |
+|-----------|-------------|--------------|
+| `~/.claude/CLAUDE.md` + `@imports` | Always | 5-15K tokens |
+| Project `CLAUDE.md` | Always | 2-8K tokens |
+| `.claude/rules/*.md` (auto-loaded) | Always | 5-40K tokens |
+| `MEMORY.md` (project memory) | Always | 1-3K tokens |
+| Claude Code system prompt | Always | ~7,500 tokens |
+| Hook output | Per tool call | 0.1-2K tokens × call frequency |
+| `.claude/commands/*.md` | On invocation only | 0 by default |
+| `.claude/agents/*.md` | On invocation only | 0 by default |
+
+The critical distinction: `.claude/rules/` loads every `.md` file at session start regardless of relevance. Commands and agents are lazy-loaded — they cost nothing until invoked. Rules files are the most common source of unexpected overhead.
+
+### Step 1 — Measure the Components
+
+Run these commands from your project root to get a breakdown by component:
+
+```bash
+# Project CLAUDE.md
+echo "=== PROJECT CLAUDE.md ===" && wc -c CLAUDE.md
+
+# Rules files sorted by size (your biggest opportunity)
+echo "=== RULES FILES ===" && find .claude/rules -name "*.md" 2>/dev/null \
+  | xargs wc -c 2>/dev/null | sort -rn | head -20
+
+# Global config files
+echo "=== GLOBAL ~/.claude ===" && ls -la ~/.claude/*.md 2>/dev/null \
+  | awk '{print $5, $9}' | sort -rn
+```
+
+### Step 2 — Calculate Your Token Budget
+
+Tokens ≈ characters ÷ 4 (rough but reliable for English/code mix).
+
+```bash
+# Full budget estimate
+GLOBAL=$(cat ~/.claude/CLAUDE.md ~/.claude/*.md 2>/dev/null | wc -c)
+PROJECT=$(wc -c < CLAUDE.md 2>/dev/null || echo 0)
+RULES=$(find .claude/rules -name "*.md" 2>/dev/null | xargs cat | wc -c)
+MEMORY=$(find ~/.claude/projects -name "MEMORY.md" -path "*$(pwd | tr '/' '-')*" \
+  2>/dev/null | xargs cat 2>/dev/null | wc -c || echo 0)
+TOTAL=$(( GLOBAL + PROJECT + RULES + MEMORY + 30000 ))
+
+echo "Global ~/.claude   : ~$(( GLOBAL / 4 )) tokens"
+echo "Project CLAUDE.md  : ~$(( PROJECT / 4 )) tokens"
+echo "Rules (auto-loaded): ~$(( RULES / 4 )) tokens"
+echo "MEMORY.md          : ~$(( MEMORY / 4 )) tokens"
+echo "System prompt      : ~7,500 tokens (estimate)"
+echo "---"
+echo "TOTAL              : ~$(( TOTAL / 4 )) tokens"
+```
+
+For context: Claude's window is 200K tokens. A 60K fixed overhead means 30% consumed before any work begins. Against a typical coding task that uses 20-40K additional tokens, that leaves less than half the window for actual output.
+
+### Step 3 — Classify Rules by Usage Frequency
+
+The rules files are usually where the biggest savings live. For each file in `.claude/rules/`, ask one question: how often is this relevant in a typical session?
+
+| Class | Definition | Action |
+|-------|------------|--------|
+| **Always critical** | Applies to every task (coding conventions, output format, safety rules) | Keep auto-loaded |
+| **Sometimes needed** | Relevant in 20-40% of sessions (debugging methodology, task management) | Keep auto-loaded if small; consider on-demand if large |
+| **Rarely needed** | Relevant in under 10% of sessions (Figma workflow, Windows compatibility, design system) | Remove from auto-load |
+| **Never needed** | Outdated, covered elsewhere, or not relevant to this project | Delete or archive |
+
+Run this classification as a prompt:
+
+```
+Read every file in .claude/rules/. For each file, classify it as:
+- ALWAYS: applies to most tasks in a typical session
+- SOMETIMES: applies in 20-40% of sessions
+- RARELY: applies in under 10% of sessions
+
+Output a table: | File | Size (chars) | Class | Reasoning |
+Sort by size descending within each class.
+Calculate: total chars that could be removed from auto-load if RARELY files
+are excluded.
+```
+
+### Step 4 — Audit Hook Overhead
+
+Hooks that fire on `PreToolUse` or `PostToolUse` run on every tool call. Each invocation injects its stdout into the context. A hook that outputs 500 characters per call, running 150 times per session, adds 75K characters (~19K tokens) to the session context.
+
+To check your hooks:
+
+```bash
+# List all hooks and their event types
+cat ~/.claude/settings.json | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+hooks = data.get('hooks', {})
+for event, hook_list in hooks.items():
+    for h in hook_list:
+        cmd = h.get('command', h.get('hooks', [{}])[0].get('command', '?'))
+        print(f'{event}: {cmd[:80]}')
+"
+```
+
+For each `PreToolUse` or `PostToolUse` hook, estimate its output size by running it manually and measuring stdout. Multiply by your average tool calls per session (check `/cost` after a typical session to get the tool call count).
+
+**High-overhead patterns to look for:**
+- Hooks that `cat` files or print multi-line summaries on every call
+- Hooks that run `git status` or `git log` unconditionally
+- `echo` statements used for debugging that were never removed
+
+### Step 5 — Build the Action Plan
+
+Typical savings without RAG or custom infrastructure:
+
+| Action | Effort | Risk | Typical savings |
+|--------|--------|------|----------------|
+| Remove "auto-loaded" from rarely-used rules | 30 min | Low | 5-20K tokens |
+| Split large rules files into core + detail | 1-2h | Low | 3-8K tokens |
+| Trim hook stdout to essential fields | 1h | Low | 2-10K tokens |
+| Compress verbose rules (see §8) | 1-2h | Low | 2-5K tokens |
+| Archive outdated MEMORY.md entries | 30 min | Low | 1-2K tokens |
+
+A realistic first pass typically yields 30-50% reduction in fixed context without touching anything that requires infrastructure.
+
+### The RAG Question
+
+You may encounter advice to move rules files into a vector database and retrieve them dynamically (RAG). This is a valid optimization at scale — it converts fixed overhead into per-query retrieval and enables precise lazy-loading.
+
+Before investing in that infrastructure, verify the math honestly:
+
+- How many tokens would you actually save? (Measure first with Steps 1-3)
+- What is the setup cost? A pgvector or Chroma setup with a custom MCP server is a 1-2 week project for a working team
+- At what point does the break-even occur? If your fixed context is already under 20K tokens after simple cleanup, RAG adds complexity for marginal gain
+
+For most individual developers and small teams, classification-based lazy loading (removing the auto-load tag from rarely-used files) achieves 80% of the gains at 2% of the infrastructure cost. RAG earns its complexity when you have 50+ rule files and need automated, intent-based loading.
+
+### Audit Prompt Template
+
+The following prompt produces a complete audit report when run inside a project. Replace the path variables as needed:
+
+```
+# Token Audit — [PROJECT NAME]
+
+Audit this Claude Code project configuration for token overhead.
+Be systematic and exhaustive, not superficial.
+
+**Step 1 — Inventory**
+List every file that is loaded at session start:
+- ~/.claude/CLAUDE.md and all @imported files (with line counts)
+- ./CLAUDE.md (line count)
+- .claude/rules/*.md (all files, sorted by size)
+- Project MEMORY.md (line count)
+
+For each file, note: lines, approximate tokens (chars ÷ 4), and one-sentence
+description of what it contains.
+
+**Step 2 — Budget calculation**
+Calculate: total fixed-context tokens before any user task.
+Show the breakdown by component. Express as % of Claude's 200K window.
+
+**Step 3 — Signal/noise classification**
+For every rules file, classify as ALWAYS / SOMETIMES / RARELY based on how
+often it would apply in a typical session on this project.
+Flag any file over 5K chars that is classified SOMETIMES or RARELY.
+
+**Step 4 — Hook audit**
+Read .claude/settings.json (and ~/.claude/settings.json).
+For each hook: event type, command, estimated stdout per invocation, and
+whether it fires on every tool call or only at session boundaries.
+Flag hooks that inject more than 200 chars per PreToolUse or PostToolUse call.
+
+**Step 5 — Action plan**
+Produce a prioritized table:
+| Action | Estimated token savings | Effort | Risk |
+Sort by: savings descending, then effort ascending.
+Include only actions achievable without external infrastructure (no RAG, no
+vector databases, no custom MCP servers).
+
+**Step 6 — RAG verdict**
+Based on the remaining savings after Step 5, calculate whether RAG would be
+worth it: estimate residual savings, estimate setup cost in hours, and state
+clearly whether the infrastructure investment is justified.
+```
+
+---
+
 ## Cross-References
 
 - Architecture and project structure patterns: `guide/core/architecture.md`
@@ -1244,6 +1632,7 @@ Most teams move from Level 0 to Level 2 in a single afternoon. Moving from Level
 - MCP server integration for extended context: `guide/ultimate-guide.md` §7 (MCP)
 - Security considerations for context content: `guide/security/`
 - Path-scoped module examples: `examples/` directory
+- PRP methodology (Product Requirements Prompt, 5-layer structure): community framework by Wirasm/Widing — `guide/core/methodologies.md` for the full summary, or search the guide for "PRP" to see practical examples
 
 ---
 

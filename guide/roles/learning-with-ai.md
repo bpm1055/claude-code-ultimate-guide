@@ -463,6 +463,10 @@ The hook asks: "What's ONE thing you learned this session?" and logs it automati
 
 Claude Code has specific features that support learning. Here's how to configure them.
 
+### Start Here: /powerup
+
+Before configuring anything, run `/powerup`. It's a built-in command that walks you through Claude Code's core features via interactive animated lessons — each one short, hands-on, and designed to show rather than tell. Start here if you've never done a structured onboarding of the tool.
+
 ### CLAUDE.md Configuration for Learning Mode
 
 Create this in your `CLAUDE.md`:
@@ -973,6 +977,48 @@ Any junior can request a 15-minute slot to explain an architectural decision the
 **3. Collective CLAUDE.md ownership**
 
 Juniors propose additions to the team `CLAUDE.md`. Proposals must be based on something that burned them or saved them in practice. Seniors review and accept or reject with a reason. This forces reflection, distributes knowledge horizontally, and builds shared ownership of the team's AI usage standards.
+
+---
+
+### Team-Level Steering Metrics
+
+"Measuring What Actually Matters" covers individual growth signals. This section covers what you look at weekly and monthly to steer the whole team, not just assess individual developers.
+
+Two levels, each with a distinct purpose.
+
+**Level 1 — Delivery health (DORA-derived)**
+
+| Metric | What It Tells You |
+|--------|------------------|
+| Deployment Frequency | Are we shipping consistently or in bursts? |
+| Cycle Time (commit to deploy) | Where is work stalling? |
+| Bug Escape Rate | What fraction of bugs reach production? |
+
+These are standard. Track them regardless of AI usage. The problem is they're not enough.
+
+**Level 2 — AI adoption quality**
+
+| Metric | How to Measure |
+|--------|---------------|
+| % AI-assisted PRs reviewed with understanding | Spot-check: ask "explain this block" in 1 out of 5 junior PRs |
+| PR review time on AI PRs vs manual PRs | Time from "ready for review" to merge, segmented by PR origin |
+| "Can explain in review" pass rate | Track how often the answer to "walk me through this" is satisfying vs evasive |
+
+These three tell you whether the team is using AI to move faster with understanding, or rubber-stamping output and shipping debt.
+
+**The Velocity Trap**
+
+Teams using AI often hit DORA "high performer" thresholds faster than expected. Deployment frequency goes up, cycle time drops. This looks like success. It isn't if Level 2 metrics are degrading simultaneously. Velocity is not a proxy for skill retention when AI writes the code. A team can ship faster every sprint while understanding their own codebase less each month. Watch both levels together, not either one in isolation.
+
+**Weekly Monday ritual (3 numbers, 5 minutes)**
+
+1. Deployment frequency this week vs last week
+2. Open PRs older than 24 hours (count only)
+3. Bugs escaped to production this week
+
+If any of the three is trending wrong for two consecutive weeks, that's your trigger to investigate, not a reason to immediately change process. Patterns matter, not individual data points.
+
+For the full framework with dashboards and alerting thresholds, see `ops/team-metrics.md`.
 
 ---
 

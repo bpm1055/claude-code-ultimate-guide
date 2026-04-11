@@ -10,13 +10,13 @@ tags: [reference, release]
 > **Full details**: [github.com/anthropics/claude-code/CHANGELOG.md](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)
 > **Machine-readable**: [claude-code-releases.yaml](../machine-readable/claude-code-releases.yaml)
 
-**Latest**: v2.1.89 | **Updated**: 2026-04-01
+**Latest**: v2.1.101 | **Updated**: 2026-04-10
 
 ---
 
 ## Quick Jump
 
-- [2.1.x Series (January-April 2026)](#21x-series-january-april-2026) — Worktree isolation, background agents, ConfigChange hook, Fast mode Opus 4.6, 1M context, claude.ai MCP connectors, remote-control, auto-memory, /copy command, HTTP hooks, worktree config sharing, ultrathink re-introduced, InstructionsLoaded hook, 4 security fixes, Agent model override restored, 12x SDK token cost reduction, /context actionable suggestions, modelOverrides setting, 1M context Opus 4.6 default for Max/Team/Enterprise, MCP elicitation, PostCompact hook, /effort command, Opus 4.6 64k/128k output tokens, allowRead sandbox setting, /branch command, StopFailure hook, streaming line-by-line, --console auth flag, SessionEnd fix, enterprise retry fix, rate_limits statusline field, effort frontmatter for skills, --channels MCP research preview, --bare flag, worktree session resume fix, MCP query collapsing, managed-settings.d/ drop-in, CwdChanged/FileChanged hooks, transcript search, credential scrubbing, PowerShell tool Windows preview, conditional hooks if field, MCP headersHelper multi-server env vars, headless AskUserQuestion hooks, X-Claude-Code-Session-Id header, Jujutsu/Sapling VCS exclusions, @ mention token reduction, Read tool compact format, Cowork Dispatch fix, PermissionDenied hook, thinking summaries off by default, "defer" PreToolUse permission, CLAUDE_CODE_NO_FLICKER
+- [2.1.x Series (January-April 2026)](#21x-series-january-april-2026) — Worktree isolation, background agents, ConfigChange hook, Fast mode Opus 4.6, 1M context, claude.ai MCP connectors, remote-control, auto-memory, /copy command, HTTP hooks, worktree config sharing, ultrathink re-introduced, InstructionsLoaded hook, 4 security fixes, Agent model override restored, 12x SDK token cost reduction, /context actionable suggestions, modelOverrides setting, 1M context Opus 4.6 default for Max/Team/Enterprise, MCP elicitation, PostCompact hook, /effort command, Opus 4.6 64k/128k output tokens, allowRead sandbox setting, /branch command, StopFailure hook, streaming line-by-line, --console auth flag, SessionEnd fix, enterprise retry fix, rate_limits statusline field, effort frontmatter for skills, --channels MCP research preview, --bare flag, worktree session resume fix, MCP query collapsing, managed-settings.d/ drop-in, CwdChanged/FileChanged hooks, transcript search, credential scrubbing, PowerShell tool Windows preview, conditional hooks if field, MCP headersHelper multi-server env vars, headless AskUserQuestion hooks, X-Claude-Code-Session-Id header, Jujutsu/Sapling VCS exclusions, @ mention token reduction, Read tool compact format, Cowork Dispatch fix, PermissionDenied hook, thinking summaries off by default, "defer" PreToolUse permission, CLAUDE_CODE_NO_FLICKER, /powerup interactive lessons, PowerShell hardened permissions, SSE linear-time performance, MCP 500K result override, disableSkillShellExecution, plugin bin/ executables, Edit tool shorter anchors, interactive Bedrock wizard, forceRemoteSettingsRefresh, /cost per-model breakdown, interactive /release-notes, Linux sandbox apply-seccomp fix, Bedrock Mantle support, high effort default for API/enterprise users, Bedrock auth fix, NO_FLICKER focus view (Ctrl+O), refreshInterval status line, 30+ bug fixes, Vertex AI wizard, Monitor tool, CLAUDE_CODE_PERFORCE_MODE, Bash security hardening, subprocess PID namespace sandboxing, /team-onboarding command, OS CA cert store trust by default, /ultraplan auto-cloud-environment, 40+ bug fixes
 - [2.0.x Series (Nov 2025 - Jan 2026)](#20x-series-november-2025---january-2026) — Opus 4.5, Claude in Chrome, Background agents
 - [Breaking Changes Summary](#breaking-changes-summary)
 - [Milestone Features](#milestone-features)
@@ -24,6 +24,175 @@ tags: [reference, release]
 ---
 
 ## 2.1.x Series (January-April 2026)
+
+### v2.1.101 (2026-04-10)
+
+> /team-onboarding command for teammate ramp-up, OS CA certificate store trusted by default for enterprise TLS proxies, /ultraplan auto-creates cloud environment, and 40+ bug fixes including --resume context loss, Bedrock SigV4 auth, sub-agent worktree file access, and Grep ENOENT self-heal.
+
+- **New**: `/team-onboarding` command — generates a teammate ramp-up guide from your local Claude Code usage patterns
+- **New**: OS CA certificate store is now trusted by default — enterprise TLS proxies work without extra config; set `CLAUDE_CODE_CERT_STORE=bundled` to revert to bundled CAs only
+- **New**: `/ultraplan` and other remote-session features now auto-create a default cloud environment instead of requiring web setup first
+- **Improved**: `claude -p --resume <name>` now accepts session titles set via `/rename` or `--name`
+- **Improved**: Unrecognized hook event names in `settings.json` no longer cause the entire file to be ignored
+- **Improved**: Rate-limit retry messages show which limit was hit and when it resets (instead of opaque countdown)
+- **Improved**: Brief mode retries once when Claude responds with plain text instead of a structured message
+- **Fixed**: `--resume`/`--continue` losing conversation context on large sessions when the loader anchored on a dead-end branch
+- **Fixed**: Bedrock SigV4 authentication failing with 403 when `ANTHROPIC_AUTH_TOKEN`, `apiKeyHelper`, or `ANTHROPIC_CUSTOM_HEADERS` set an Authorization header
+- **Fixed**: Sub-agents running in isolated worktrees denied Read/Edit access to files inside their own worktree
+- **Fixed**: `RemoteTrigger` tool's `run` action sending an empty body and being rejected by the server
+- **Fixed**: Grep tool ENOENT when the embedded ripgrep binary path becomes stale (VS Code extension auto-update, macOS App Translocation) — now falls back to system `rg` and self-heals mid-session
+- **Fixed**: Hardcoded 5-minute request timeout aborting slow backends (local LLMs, extended thinking, slow gateways) regardless of `API_TIMEOUT_MS`
+- **Fixed**: Command injection vulnerability in POSIX `which` fallback used by LSP binary detection
+- **Fixed**: `permissions.deny` rules not overriding a PreToolUse hook's `permissionDecision: "ask"`
+- **Fixed**: Memory leak where long sessions retained dozens of historical copies of the message list in the virtual scroller
+- **Fixed**: `/btw` writing a full conversation copy to disk on every use
+
+### v2.1.98 (2026-04-10)
+
+> Vertex AI interactive setup wizard, Monitor tool for background script streaming, major Bash security hardening (8+ permission bypasses fixed), and subprocess PID namespace sandboxing.
+
+- **New**: Interactive Vertex AI setup wizard from the login screen (select "3rd-party platform") — guides through GCP authentication, project and region configuration, credential verification, and model pinning
+- **New**: Monitor tool for streaming events from background scripts
+- **New**: `CLAUDE_CODE_PERFORCE_MODE` env var — Edit/Write/NotebookEdit fail on read-only files with a `p4 edit` hint instead of silently overwriting
+- **New**: Subprocess sandboxing with PID namespace isolation on Linux when `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` is set; `CLAUDE_CODE_SCRIPT_CAPS` env var to limit per-session script invocations
+- **New**: `--exclude-dynamic-system-prompt-sections` flag in print mode for improved cross-user prompt caching
+- **New**: W3C `TRACEPARENT` env var injected into Bash tool subprocesses when OTEL tracing is enabled
+- **New**: LSP: Claude Code now identifies itself via `clientInfo` in the initialize request
+- **Security (Bash)**: Fixed permission bypass where backslash-escaped flags could be auto-allowed as read-only and execute arbitrary code
+- **Security (Bash)**: Fixed compound commands bypassing forced permission prompts in auto and bypass-permissions modes
+- **Security (Bash)**: Fixed read-only commands with unknown env-var prefixes not prompting (only `LANG`, `TZ`, `NO_COLOR`, etc. are now safe-listed)
+- **Security (Bash)**: Fixed `/dev/tcp/...` and `/dev/udp/...` redirects not prompting
+- **Security (Bash)**: Fixed `grep -f FILE` / `rg -f FILE` not prompting when reading pattern files outside the working directory
+- **Fixed**: Stalled streaming responses timing out instead of falling back to non-streaming mode
+- **Fixed**: `--dangerously-skip-permissions` silently downgraded to accept-edits mode after approving a protected-path Bash write
+- **Fixed**: Managed-settings allow rules remaining active after admin removal until process restart
+- **Fixed**: `permissions.additionalDirectories` changes not applying mid-session; `--add-dir` access unaffected by removal
+- **Fixed**: MCP OAuth `oauth.authServerMetadataUrl` not honored on token refresh — fixes ADFS and similar IdPs
+- **Fixed**: 429 retries burning all attempts in ~13s with small `Retry-After` — exponential backoff now applies as minimum
+- **Fixed**: Capital letters dropped to lowercase in xterm/VS Code integrated terminal with kitty keyboard protocol active
+- **Fixed**: macOS text replacements deleting trigger word instead of inserting substitution
+- **Fixed**: Agent team members not inheriting leader's permission mode with `--dangerously-skip-permissions`
+- **Fixed**: `CLAUDE_CODE_MAX_CONTEXT_TOKENS` now honors `DISABLE_COMPACT`
+- **Improved**: `/agents` with tabbed layout — Running tab shows live subagents, Library tab adds Run and View actions
+- **Improved**: `/resume` filter hint labels; project/worktree/branch names in filter indicator
+- **Improved**: Accept Edits mode auto-approves filesystem commands prefixed with safe env vars or process wrappers
+- **Improved**: Write tool diff computation 60% faster on files with tabs/`&`/`$`
+
+### v2.1.97 (2026-04-09)
+
+> Major bug-fix release with 30+ fixes across NO_FLICKER mode, /resume, permissions, and MCP — plus focus view toggle and status line enhancements.
+
+- **New**: Focus view toggle (`Ctrl+O`) in NO_FLICKER mode — shows prompt, one-line tool summary with edit diffstats, and final response
+- **New**: `refreshInterval` status line setting — re-runs the status line command every N seconds
+- **New**: `workspace.git_worktree` field added to status line JSON input, populated when inside a linked git worktree
+- **New**: `● N running` indicator in `/agents` next to agent types with live subagent instances
+- **New**: Syntax highlighting for Cedar policy files (`.cedar`, `.cedarpolicy`)
+- **Fixed (permissions)**: `--dangerously-skip-permissions` silently downgraded to accept-edits mode after approving a write to a protected path
+- **Fixed (permissions)**: Permission rules with names matching JS prototype properties (e.g. `toString`) causing `settings.json` to be silently ignored
+- **Fixed (permissions)**: Managed-settings allow rules remaining active after admin removal until process restart
+- **Fixed (permissions)**: `permissions.additionalDirectories` changes not applying mid-session; removing a dir now correctly revokes access without affecting `--add-dir` entries
+- **Fixed (MCP)**: HTTP/SSE connections accumulating ~50 MB/hr of unreleased buffers on reconnect
+- **Fixed (MCP)**: OAuth `oauth.authServerMetadataUrl` not honored on token refresh after restart — fixes ADFS and similar IdPs
+- **Fixed (rate limits)**: 429 retries burning all attempts in ~13 s when server returns small `Retry-After` — exponential backoff now applies as minimum
+- **Fixed (rate limits)**: Rate-limit upgrade options disappearing after context compaction
+- **Fixed (/resume)**: 6 fixes — `--resume <name>` opened uneditable, Ctrl+A wiped search, empty list swallowed navigation, task-status replaced conversation summary, cross-project staleness, file-edit diffs disappearing for files >10 KB
+- **Fixed (transcript)**: `--resume` cache misses from attachment messages not saved; messages typed during Claude's response not persisted
+- **Fixed (hooks)**: `Stop`/`SubagentStop` hooks failing on long sessions; hook evaluator API errors showing "JSON validation failed" instead of actual message
+- **Fixed (subagents)**: Worktree isolation / `cwd:` override leaking working directory back to parent Bash tool
+- **Fixed (compaction)**: Duplicate multi-MB subagent transcript files on prompt-too-long retries
+- **Fixed (plugins)**: `claude plugin update` reporting "already at latest" for git-based marketplace plugins with newer remote commits; slash command picker breaking when plugin frontmatter `name` is a YAML boolean keyword
+- **Fixed (NO_FLICKER, 15 fixes)**: Wrapped URL spaces, zellij scroll artifacts, MCP result hover crash, API retry memory leak, slow Windows Terminal mouse-wheel, custom status line hidden on terminals <24 rows, Shift+Enter/Alt+arrow in Warp, CJK text garbled on Windows copy, footer indicator wrapping, blockquote left bar across wrapped lines, transient context-low notification
+- **Fixed (Bedrock)**: SigV4 auth failing when `AWS_BEARER_TOKEN_BEDROCK` / `ANTHROPIC_BEDROCK_BASE_URL` set to empty strings (as GitHub Actions does for unset inputs)
+- **Improved**: Accept Edits mode auto-approves filesystem commands prefixed with safe env vars or process wrappers (e.g. `LANG=C rm foo`, `timeout 5 mkdir out`)
+- **Improved**: Auto mode and bypass-permissions mode auto-approve sandbox network access prompts; `sandbox.network.allowMachLookup` now takes effect on macOS
+- **Improved**: Pasted and attached images compressed to same token budget as Read tool images
+- **Improved**: Slash command and `@`-mention completion now triggers after CJK sentence punctuation — Japanese/Chinese input no longer requires a space before `/` or `@`
+- **Improved**: Bridge sessions show local git repo, branch, and working directory on the claude.ai session card
+- **Improved**: Session transcript size reduced by skipping empty hook entries and capping stored pre-edit file copies; per-block entries now carry final token usage
+- **Updated**: `/claude-api` skill covers Managed Agents alongside the Claude API
+
+---
+
+### v2.1.96 (2026-04-08)
+
+> Hotfix release addressing a Bedrock authentication regression introduced in v2.1.94.
+
+- **Fixed**: Bedrock requests failing with `403 "Authorization header is missing"` when using `AWS_BEARER_TOKEN_BEDROCK` or `CLAUDE_CODE_SKIP_BEDROCK_AUTH` (regression from v2.1.94)
+
+---
+
+### v2.1.94 (2026-04-07)
+
+> Feature release adding Amazon Bedrock Mantle support, raising the default effort level for professional users, and improving plugin skill naming.
+
+- **New**: Amazon Bedrock powered by Mantle support — set `CLAUDE_CODE_USE_MANTLE=1`
+- **New**: Default effort level changed from medium to **high** for API-key, Bedrock/Vertex/Foundry, Team, and Enterprise users (control with `/effort`)
+- **New**: Plugin skills declared via `"skills": ["./"]` now use frontmatter `name` instead of directory basename — stable naming across install methods
+- **New**: Compact `Slacked #channel` header with clickable link for Slack MCP send-message tool calls
+- **New**: `keep-coding-instructions` frontmatter field support for plugin output styles
+- **New**: `hookSpecificOutput.sessionTitle` on `UserPromptSubmit` hooks for setting session title programmatically
+- **Fixed**: Agents stuck after 429 rate-limit with long Retry-After — error surfaces immediately instead of silently waiting
+- **Fixed**: Console login on macOS silently failing with "Not logged in" when login keychain is locked — error now surfaced with `claude doctor` fix guidance
+- **Fixed**: Plugin skill hooks defined in YAML frontmatter being silently ignored
+- **Fixed**: Scrollback showing duplicate diffs and blank pages in long-running sessions
+
+---
+
+### v2.1.92 (2026-04-04)
+
+> Feature release adding interactive Bedrock wizard, fail-closed managed settings enforcement, and /cost per-model breakdown.
+
+- **New**: Interactive Bedrock setup wizard from the login screen ("3rd-party platform") — step-by-step AWS auth, region config, credential verification, and model pinning
+- **New**: `forceRemoteSettingsRefresh` policy setting — blocks CLI startup until managed settings are freshly fetched, exits with error if fetch fails (fail-closed enforcement)
+- **New**: Per-model and cache-hit cost breakdown in `/cost` for subscription users
+- **New**: `/release-notes` is now an interactive version picker
+- **New**: Remote Control session names use hostname as default prefix (e.g. `myhost-graceful-unicorn`), overridable with `--remote-control-session-name-prefix`
+- **New**: Pro users see a footer hint when returning after prompt cache expiry, estimating uncached tokens for next turn
+- **Fixed**: Subagent spawning permanently failing with "Could not determine pane count" after tmux windows are killed or renumbered
+- **Fixed**: API 400 error when extended thinking produced a whitespace-only text block alongside real content
+- **Fixed**: Linux sandbox `apply-seccomp` helper now shipped in both npm and native builds — restores unix-socket blocking for sandboxed commands
+- **Improved**: Write tool diff computation 60% faster for large files with tabs/`&`/`$`
+- **Removed**: `/tag` command
+- **Removed**: `/vim` command — toggle vim mode via `/config` → Editor mode
+
+---
+
+### v2.1.91 (2026-04-03)
+
+> Maintenance release with MCP result size override, plugin executable support, and Edit tool token reduction.
+
+- **New**: MCP tool result size override via `_meta["anthropic/maxResultSizeChars"]` annotation (up to 500K) — large DB schemas and API payloads pass through without truncation
+- **New**: `disableSkillShellExecution` setting — disable inline shell execution in skills, slash commands, and plugin commands
+- **New**: Plugins can ship executables under `bin/` for direct Bash tool invocation without full path
+- **New**: Multi-line prompts now supported in `claude-cli://open?q=` deep links (`%0A` encoded newlines accepted)
+- **Fixed**: `--resume` losing conversation history when async transcript writes fail silently
+- **Fixed**: `cmd+delete` not deleting to start of line in iTerm2, Kitty, WezTerm, Ghostty, Windows Terminal
+- **Fixed**: Plan mode in remote sessions losing track of plan file after container restart
+- **Fixed**: JSON schema validation for `permissions.defaultMode: "auto"` in settings.json
+- **Improved**: Edit tool uses shorter `old_string` anchors — reduces output tokens
+- **Improved**: `/claude-api` skill guidance expanded with agent design patterns (tool surface decisions, context management, caching strategy)
+- **Improved**: `stripAnsi` ~2x faster on Bun via `Bun.stripANSI`
+
+---
+
+### v2.1.90 (2026-04-02)
+
+> Feature release adding `/powerup` interactive lessons, PowerShell tool hardening, and key performance/reliability fixes.
+
+- **New**: `/powerup` command — interactive animated lessons teaching Claude Code features with live terminal demos
+- **Fixed**: Infinite loop crashing sessions when rate-limit options dialog repeatedly auto-opened after hitting usage limit
+- **Fixed**: `--resume` causing full prompt-cache miss on first request for users with deferred tools, MCP servers, or custom agents (regression since v2.1.69)
+- **Fixed**: `PreToolUse` hooks that emit JSON to stdout and exit with code 2 not correctly blocking the tool call
+- **Fixed**: Collapsed search/read summary badge appearing multiple times in fullscreen scrollback during CLAUDE.md auto-load
+- **Fixed**: Auto mode not respecting explicit user boundaries ("don't push", "wait for X before Y")
+- **Fixed**: Headers disappearing when scrolling `/model`, `/config`, and other selection screens
+- **Hardened**: PowerShell tool permissions — trailing `&` background job bypass, `-ErrorAction Break` debugger hang, archive-extraction TOCTOU, parse-fail fallback deny-rule degradation
+- **Improved**: SSE transport handles large streamed frames in linear time (was quadratic)
+- **Improved**: Eliminated per-turn JSON.stringify of MCP tool schemas on cache-key lookup
+- **Improved**: `/resume` all-projects view loads project sessions in parallel
+- **Changed**: `--resume` picker no longer shows sessions created by `claude -p` or SDK invocations
+
+---
 
 ### v2.1.89 (2026-04-01)
 
@@ -1029,6 +1198,7 @@ tags: [reference, release]
 | Date | Feature |
 |------|---------|
 | 2026-01-29 | **Structured Outputs GA**: `output_config.format` remplace `output_format`. [Docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) |
+| 2026-04-30 | **1M context beta retired**: `context-1m-2025-08-07` header no longer accepted for Sonnet 4.5/4 — requests >200k tokens error. Migrate to Sonnet 4.6 or Opus 4.6. |
 
 ### Shortcuts
 

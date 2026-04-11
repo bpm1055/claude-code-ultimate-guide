@@ -781,9 +781,26 @@ Configure a custom script for `@` file path autocomplete. The command receives J
 #### `outputStyle`
 **Type:** string
 **Scope:** all
-**Default:** `"default"`
+**Default:** `"Default"`
 
-Configure an output style to adjust the system prompt. Example: `"Explanatory"`.
+Controls how Claude communicates throughout the session. Equivalent to selecting a style via `/config` → "Preferred output style".
+
+**Built-in values:**
+- `"Default"` — concise, task-focused responses optimized for speed
+- `"Explanatory"` — adds reasoning blocks explaining design choices, trade-offs, and codebase patterns
+- `"Learning"` — pauses at key steps, inserts `TODO(human)` markers, asks you to write the meaningful pieces (pair-programming mode)
+
+**Custom styles:** reference any filename (without `.md`) from `.claude/styles/`.
+
+```json
+{ "outputStyle": "Explanatory" }
+```
+
+```json
+{ "outputStyle": "strict-reviewer" }
+```
+
+Setting persists across sessions. Explanatory and Learning increase output tokens; prompt caching offsets the cost after the first request. See [Section 9.7](../ultimate-guide.md#97-output-styles) for full documentation and custom style examples.
 
 #### `spinnerTipsEnabled`
 **Type:** boolean

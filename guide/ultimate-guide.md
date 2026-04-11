@@ -16,7 +16,7 @@ tags: [guide, reference, workflows, agents, hooks, mcp, security]
 
 **Last updated**: January 2026
 
-**Version**: 3.38.1
+**Version**: 3.38.12
 
 ---
 
@@ -48,6 +48,7 @@ If you only have 5 minutes, here's what you need to know:
 ```bash
 claude                    # Start Claude Code
 /help                     # Show all commands
+/powerup                  # Interactive lessons: CLAUDE.md, /rewind, memory, effort modes
 /status                   # Check context usage
 /compact                  # Compress context when >70%
 /clear                    # Fresh start
@@ -146,7 +147,7 @@ If you only have time for 5 sections:
 - [2. Core Concepts](#2-core-concepts) `🟡 Intermediate` `⏱ 60 min`
   - [2.1 The Interaction Loop](#21-the-interaction-loop)
   - [2.2 Context Management](#22-context-management)
-  - [2.3 Plan Mode](#23-plan-mode)
+  - [2.3 Plan Mode](#23-plan-mode) (incl. [Ultraplan](#ultraplan), [OpusPlan](#opusplan-mode))
   - [2.4 Rewind](#24-rewind)
   - [2.5 Model Selection & Thinking Guide](#25-model-selection--thinking-guide)
   - [2.6 Mental Model](#26-mental-model)
@@ -1072,6 +1073,19 @@ Use for restrictive workflows where you want tight control over which tools run,
 Auto-approves everything, including shell commands. No permission prompts at all.
 
 ⚠️ **Warning**: Only use in sandboxed CI/CD environments. Requires `--dangerously-skip-permissions` to enable from CLI. Never use on production systems or with untrusted code.
+
+**Safety invariant — some paths always prompt, even in `bypassPermissions` mode**:
+
+Certain writes are considered too sensitive to auto-approve under any configuration. Claude Code always prompts before modifying:
+
+| Protected target | Examples |
+|-----------------|---------|
+| `.git/` directory | git hooks, refs, config inside the repo |
+| `.claude/` directory | agents, skills, hooks, settings — except `.claude/worktrees/` |
+| Shell config files | `.bashrc`, `.zshrc`, `.bash_profile`, `.profile` |
+| VCS and tool configs | `.gitconfig`, `.mcp.json`, `.claude.json` |
+
+Content-specific `allow` rules (e.g., `Bash(npm publish:*)`) defined in `settings.json` or CLAUDE.md also survive `bypassPermissions` — they continue to apply as additional filters on top of any permission mode. This lets you build precise guardrails (e.g., "always ask before publishing to npm") that hold regardless of how the session is launched.
 
 ### Permission Fatigue (anti-pattern)
 
@@ -2985,6 +2999,107 @@ User: Implement the plan from round 3.
 > The Rev the Engine pattern operationalizes this finding: each round of deep challenge triggers the questioning behavior that produces measurably better plans.
 >
 > *Source: Swanson et al., "The AI Fluency Index", Anthropic (2026-02-23) — [anthropic.com/research/AI-fluency-index](https://www.anthropic.com/research/AI-fluency-index)*
+
+### Ultraplan
+
+**Status**: Research preview — requires Claude Code v2.1.91+ and a Claude Code on the web account.
+
+**Concept**: Offload planning to Anthropic's cloud while your terminal stays free. Claude drafts the plan remotely using multiple Opus 4.6 agents in parallel; you review it in your browser with inline comments, then choose whether to execute in the cloud or teleport the plan back to your terminal.
+
+This solves the core friction of local Plan Mode: on complex tasks, the terminal blocks for minutes while planning runs. Ultraplan runs asynchronously — you keep working, check back when ready.
+
+**How It Works**
+
+1. CLI launches a cloud session → terminal shows a live status indicator
+2. Multiple Opus 4.6 agents explore the codebase in parallel (planning windows up to 30 minutes)
+3. Browser opens the plan with outline sidebar, inline commenting, and emoji reactions
+4. You iterate on the plan — comment on specific sections, request revisions
+5. Choose where to execute: cloud (opens a PR) or terminal (teleports the plan back)
+
+**Activation (3 methods)**
+
+```bash
+# 1. Dedicated command
+/ultraplan migrate the auth service from sessions to JWTs
+
+# 2. Keyword anywhere in a prompt
+Plan with ultraplan a full refactor of the payments module
+
+# 3. From a local plan approval dialog
+# → choose "No, refine with Ultraplan on Claude Code on the web"
+```
+
+The command and keyword paths show a confirmation dialog first. The local plan path skips it.
+
+**Terminal Status Indicators**
+
+| Status | Meaning |
+|--------|---------|
+| `◇ ultraplan` | Claude is researching and drafting |
+| `◇ ultraplan needs your input` | Clarification needed — open the browser link |
+| `◆ ultraplan ready` | Plan is ready to review |
+
+Run `/tasks` to see the session link, agent activity, and a **Stop ultraplan** action.
+
+**Browser Review Interface**
+
+- **Outline sidebar**: navigate between sections without scrolling
+- **Inline comments**: highlight any passage, leave targeted feedback
+- **Emoji reactions**: signal approval or concern on a section without writing a comment
+- **Revision cycles**: ask Claude to address your comments; it presents an updated draft — iterate as many times as needed
+
+**Execution: Two Choices**
+
+Once the plan looks right, choose in the browser:
+
+| Option | What happens |
+|--------|-------------|
+| **Approve and start coding** | Cloud session implements the plan, creates a PR; terminal clears |
+| **Approve and teleport back** | Plan sent to your terminal with 3 sub-options |
+
+Teleport sub-options:
+- **Implement here** — inject plan into current conversation, proceed immediately
+- **Start new session** — fresh session with plan as context (prints `claude --resume` to return to current session)
+- **Cancel** — saves plan to a file, prints the path
+
+**Requirements and Constraints**
+
+| Requirement | Detail |
+|-------------|--------|
+| Claude Code version | v2.1.91+ |
+| Account | Pro, Max, Team, or Enterprise (not free tier) |
+| Repository | GitHub only (no GitLab, Bitbucket) |
+| Providers | Anthropic API only — not available on Bedrock, Vertex, Foundry |
+| Conflict | Incompatible with Remote Control (both use claude.ai/code) |
+
+**Ultraplan vs. OpusPlan vs. Plan Mode**
+
+| Feature | Plan Mode | OpusPlan | Ultraplan |
+|---------|-----------|----------|-----------|
+| Execution | Local | Local | Cloud |
+| Terminal blocked? | Yes | Yes | No |
+| Models | Active model | Opus (plan) + Sonnet (act) | Opus 4.6 (multi-agent) |
+| Review surface | Terminal scrollback | Terminal scrollback | Browser with inline comments |
+| Requires GitHub | No | No | Yes |
+| Token accounting | Counts locally | Counts locally | Cloud planning free from local quota |
+
+**When to Use Ultraplan**
+
+Best fit:
+- Complex architectural changes touching many files (service migrations, large refactors)
+- Tasks where you want to keep working while planning runs
+- Situations where stakeholders need to review the plan before implementation
+
+Skip it for:
+- Simple, focused changes where local Plan Mode takes under a minute
+- Environments without internet or not on GitHub
+- Sessions using Remote Control
+
+**Token Note**: Early tests show cloud planning consuming ~37% fewer tokens than equivalent local plans (82K vs 131K for a ~55 min migration task). Cloud planning tokens don't count against your local quota; only implementation tokens do.
+
+> **See also**: [§9.16 Session Teleportation](#916-session-teleportation) for the broader web ↔ terminal workflow. Ultraplan uses the same cloud infrastructure with planning-specific review capabilities.
+
+---
 
 ### Mechanic Stacking
 
@@ -5004,6 +5119,16 @@ Claude Code automatically saves useful context across sessions without manual CL
 - Automatically recalled in future sessions for the same project
 - Manage with `/memory`: view, edit, or delete stored entries
 
+**File limits** (enforced at read time):
+
+| Limit | Value | Behavior when exceeded |
+|-------|-------|------------------------|
+| `MEMORY.md` max lines | 200 lines | Truncated at line 200, warning appended |
+| `MEMORY.md` max size | 25 KB | Truncated at last newline before 25 KB, warning appended |
+| Memory directory | 200 files | Oldest files pruned when limit is reached |
+
+Line truncation happens first; if the file is still over 25 KB after line truncation, byte truncation is applied at the last complete line. Both truncations append a warning comment so you can see that content was cut. The Auto Dream consolidation process keeps `MEMORY.md` under the 200-line cap as part of its Phase 4 pruning step.
+
 **What gets remembered** (examples):
 - Architectural decisions: "We use Prisma for database access"
 - Preferences: "This team prefers functional components over class components"
@@ -5316,7 +5441,7 @@ The `.claude/` folder is your project's Claude Code directory for memory, settin
 | Personal preferences | `CLAUDE.md` | ❌ Gitignore |
 | Personal permissions | `settings.local.json` | ❌ Gitignore |
 
-### 3.38.1 Version Control & Backup
+### 3.38.12 Version Control & Backup
 
 **Problem**: Without version control, losing your Claude Code configuration means hours of manual reconfiguration across agents, skills, hooks, and MCP servers.
 
@@ -7310,6 +7435,7 @@ allowed-tools: Read Grep Bash
 | `compatibility` | [agentskills.io](https://agentskills.io) | Environment requirements (max 500 chars) |
 | `metadata` | [agentskills.io](https://agentskills.io) | Arbitrary key-value pairs (author, version, etc.) |
 | `effort` | **CC only** (v2.1.80+) | `low\|medium\|high` — overrides the session effort level when this skill is invoked. Set `low` for mechanical tasks (commit, format, scaffold), `high` for analysis or architectural reasoning. |
+| `argument-hint` | **CC only** | Placeholder shown in the slash command menu when the skill accepts `$ARGUMENTS`. Format: `"[--flag] [positional_arg]"`. Example: `"[--verbose] [--max N] <branch>"`. |
 | `disable-model-invocation` | **CC only** | `true` to make skill manual-only (workflow with side effects) |
 
 **`effort` per skill** (v2.1.80+) — override the session effort level for a specific skill invocation. Independent of `effortLevel` in settings.json: the skill's value takes precedence only while that skill runs, then reverts.
@@ -8875,9 +9001,75 @@ Added in v2.1.63, `/batch` orchestrates large-scale codebase changes by distribu
 
 > **Note**: Both `/simplify` and `/batch` are bundled slash commands that ship with Claude Code v2.1.63+. No configuration required.
 
-### The /loop Command
+### Scheduled Tasks: Three Methods
 
-`/loop [interval] [prompt]` runs a prompt or slash command on a recurring interval — until you stop it. Turn any repetitive check or workflow into an automated background task.
+Claude Code provides three distinct mechanisms for running recurring tasks. They differ on where the execution happens, whether a machine needs to be on, and how much infrastructure access you get.
+
+#### Comparison Table
+
+| | Cloud Tasks (`/schedule`) | Desktop Tasks | `/loop` |
+|--|--|--|--|
+| Runs on | Anthropic cloud | Local machine | Local machine |
+| Machine must be on | No | Yes | Yes |
+| Session must be open | No | No | Yes |
+| Persists between restarts | Yes | Yes | No |
+| Local file access | No (fresh repo clone) | Yes | Yes |
+| MCP servers | Configured connectors per task | Config files + connectors | Inherited from session |
+| Permission prompts | None (autonomous) | Configurable | Inherited from session |
+| Minimum interval | 1 hour | 1 minute | 1 minute |
+
+#### Cloud Scheduled Tasks (`/schedule`)
+
+Cloud tasks run on Anthropic's infrastructure. Your machine can be completely off. Each run clones a fresh copy of your GitHub repository, so there is no access to local files outside of version control.
+
+**Access**: Pro, Max, Team, and Enterprise plans.
+
+**Create a task** via any of these three entry points:
+- `claude.ai/code/scheduled` — web interface
+- Desktop app — visual schedule builder
+- `/schedule` command in the CLI
+
+```bash
+/schedule "every Monday at 9am, open a PR summarizing last week's merged PRs"
+/schedule "every day at 6am, run the test suite and post results to Slack"
+```
+
+**How each run works**: Anthropic clones your repo, spins up a Claude session with the configured MCP connectors, executes the task, then pushes any commits to a branch prefixed `claude/` by default.
+
+**Key constraints**:
+- Minimum interval is 1 hour (not suitable for sub-hour checks)
+- No local file access (files not in the GitHub repo are not visible)
+- Supports MCP connectors: Slack, Linear, Google Drive, and others configured per task
+- Can catch up on missed runs if the machine was offline
+
+**Official docs**: `https://code.claude.com/docs/en/web-scheduled-tasks.md`
+
+#### Desktop Scheduled Tasks
+
+Desktop tasks run on your local machine via the Claude Code Desktop app. Your machine must be on, but you do not need an active terminal session.
+
+Unlike Cloud tasks, Desktop tasks have full access to local files and your existing MCP configuration. The minimum interval is 1 minute.
+
+**Create a task**: open the Desktop app, go to the **Schedule** page, click **New task**. You can also create a remote (cloud) task from the same page by selecting **New remote task**.
+
+**How each run works**: A fresh Claude instance starts, reads your project files, executes the task prompt, and shuts down. Missed runs (machine was off) are queued and executed when the app reopens.
+
+**Official docs**: `https://code.claude.com/docs/en/desktop-scheduled-tasks`
+
+#### DIY: System Cron + `claude --print`
+
+For full control without the Desktop app, wire up the system cron directly with Claude's headless flag:
+
+```bash
+# crontab -e
+0 8 * * 1-5 bash -c 'source /home/user/.env && cd /your/repo && claude --print "summarize git changes since yesterday" >> /var/log/claude-daily.log 2>&1'
+```
+
+This approach runs entirely offline without any Anthropic infrastructure and has no minimum interval. Three things to get right: use the full path to `claude` (check with `which claude`), load your `ANTHROPIC_API_KEY` from a file rather than hardcoding it, and redirect both stdout and stderr to a log file so you have a record of each run.
+
+#### The /loop Command
+
+`/loop [interval] [prompt]` runs a prompt or slash command on a recurring interval within your current session. It stops when you press `Ctrl+C` or send any new message.
 
 ```bash
 /loop 5m check the deploy
@@ -8895,9 +9087,9 @@ Added in v2.1.63, `/batch` orchestrates large-scale codebase changes by distribu
 | `/loop 30m /slack-feedback` | Post PRs for team feedback every 30 min |
 | `/loop 1h /pr-pruner` | Clean up stale PRs on a schedule |
 
-**Stopping a loop**: Press `Ctrl+C` or send any new message.
+**Constraints**: Session-scoped only. Max 3 days runtime, minimum 1 minute interval, maximum 50 tasks per session.
 
-> Added in v2.1.71. Timestamp markers in loop transcripts added in v2.1.86.
+> `/loop` added in v2.1.71. Timestamp markers in loop transcripts added in v2.1.86. Cloud and Desktop Scheduled Tasks launched March 9, 2026. Source: [code.claude.com/docs/en/whats-new](https://code.claude.com/docs/en/whats-new)
 
 ### Custom Commands
 
@@ -8965,9 +9157,25 @@ Usage:
 > $0 $1
 > ```
 
+**Pair `$ARGUMENTS` with `argument-hint`** so users see available options in the command picker. The hint appears as placeholder text when typing the command:
+
+```yaml
+---
+description: Deploy to a target environment
+argument-hint: "<env> [--skip-tests] [--dry-run]"
+---
+Deploy to $ARGUMENTS[0] environment.
+```
+
+When the user types `/deploy`, the menu shows: `/deploy <env> [--skip-tests] [--dry-run]`
+
 ## 6.3 Command Template
 
 ```markdown
+---
+description: Brief description of what this command does
+argument-hint: "[--flag] <required_arg> [optional_arg]"
+---
 # Command Name
 
 ## Purpose
@@ -9227,29 +9435,72 @@ Hooks are scripts that run automatically when specific events occur.
 
 ### Event Types
 
+**Lifecycle** (session-level events):
+
 | Event | When It Fires | Can Block? | Use Case |
 |-------|---------------|------------|----------|
 | `SessionStart` | Session begins or resumes | No | Initialization, load dev context |
-| `UserPromptSubmit` | User submits prompt, before Claude processes it | Yes | Context enrichment, prompt validation |
-| `PreToolUse` | Before a tool call executes | Yes | Security validation, input modification |
-| `PermissionRequest` | Permission dialog appears | Yes | Custom approval logic |
-| `PostToolUse` | After a tool completes successfully | No | Formatting, logging |
-| `PostToolUseFailure` | After a tool call fails | No | Error logging, recovery actions |
-| `Notification` | Claude sends notification | No | Sound alerts, custom notifications |
-| `SubagentStart` | Sub-agent spawned | No | Subagent initialization |
-| `SubagentStop` | Sub-agent finishes | Yes | Subagent cleanup |
+| `Setup` | Environment setup phase at session start | No | Install tools, validate prerequisites |
+| `SessionEnd` | Session terminates | No | Cleanup, logging |
+
+**Agent actions** (tool execution pipeline):
+
+| Event | When It Fires | Can Block? | Use Case |
+|-------|---------------|------------|----------|
 | `Stop` | Claude finishes responding | Yes | Post-response actions, continue loops |
 | `StopFailure` | Turn ends due to API error (rate limit, auth failure) | No | Alert on quota exhaustion, observability |
+| `PreToolUse` | Before a tool call executes | Yes | Security validation, input modification |
+| `PostToolUse` | After a tool completes successfully | No | Formatting, logging |
+| `PostToolUseFailure` | After a tool call fails | No | Error logging, recovery actions |
+
+**Permissions** (approval flow):
+
+| Event | When It Fires | Can Block? | Use Case |
+|-------|---------------|------------|----------|
+| `PermissionRequest` | Permission dialog appears | Yes | Custom approval logic |
+| `PermissionDenied` | A permission is denied | No | Audit denied operations, alert |
+
+**Compaction** (context management):
+
+| Event | When It Fires | Can Block? | Use Case |
+|-------|---------------|------------|----------|
+| `PreCompact` | Before context compaction | No | Save state before compaction |
+| `PostCompact` | After context compaction completes | No | Restore state, log compaction |
+
+**Multi-agent** (orchestration):
+
+| Event | When It Fires | Can Block? | Use Case |
+|-------|---------------|------------|----------|
+| `SubagentStart` | Sub-agent spawned | No | Subagent initialization |
+| `SubagentStop` | Sub-agent finishes | Yes | Subagent cleanup |
 | `TeammateIdle` | Agent team member about to go idle | Yes | Team coordination, quality gates |
+| `TaskCreated` | Task created via TaskCreate | No | Task monitoring, audit logging |
 | `TaskCompleted` | Task being marked as completed | Yes | Enforce completion criteria |
+
+**Configuration** (settings & instructions):
+
+| Event | When It Fires | Can Block? | Use Case |
+|-------|---------------|------------|----------|
 | `ConfigChange` | Config file changes during session | Yes (except policy) | Enterprise audit, block unauthorized changes |
-| `WorktreeCreate` | Worktree being created | Yes (non-zero exit) | Custom VCS setup |
-| `WorktreeRemove` | Worktree being removed | No | Clean up VCS state |
+| `InstructionsLoaded` | CLAUDE.md or instructions file loaded | No | Audit which instruction files are active |
+
+**File system** (workspace changes):
+
+| Event | When It Fires | Can Block? | Use Case |
+|-------|---------------|------------|----------|
 | `CwdChanged` | Working directory changes during session | No | direnv reload, toolchain switching |
 | `FileChanged` | A file is modified during session | No | Reload config, trigger watchers |
-| `TaskCreated` | Task created via TaskCreate | No | Task monitoring, audit logging |
-| `PreCompact` | Before context compaction | No | Save state before compaction |
-| `SessionEnd` | Session terminates | No | Cleanup, logging |
+| `WorktreeCreate` | Worktree being created | Yes (non-zero exit) | Custom VCS setup |
+| `WorktreeRemove` | Worktree being removed | No | Clean up VCS state |
+
+**User interaction** (prompts & notifications):
+
+| Event | When It Fires | Can Block? | Use Case |
+|-------|---------------|------------|----------|
+| `UserPromptSubmit` | User submits prompt, before Claude processes it | Yes | Context enrichment, prompt validation |
+| `Notification` | Claude sends notification | No | Sound alerts, custom notifications |
+| `Elicitation` | Claude requests information from user (headless) | Yes | Intercept and pre-answer questions in automation |
+| `ElicitationResult` | Response to an elicitation is received | No | Log or audit user responses to Claude's questions |
 
 > **`Stop` and `SubagentStop` — `last_assistant_message` field (v2.1.47+)**: These events now include a `last_assistant_message` field in their JSON input, giving direct access to Claude's final response without parsing transcript files. Useful for orchestration pipelines that need to inspect or log the last output.
 >
@@ -9438,6 +9689,19 @@ gh pr create --title "..." --body "..."
 | `statusMessage` | Custom spinner message displayed while hook runs |
 | `once` | If `true`, runs only once per session then is removed (skills only) |
 
+### Session-Scoped Hooks
+
+Hooks do not have to be persisted in `settings.json`. Claude Code supports ephemeral **session-scoped hooks** that are registered at runtime and last only for the duration of the current session. They are never written to any config file and disappear when the session ends.
+
+This is the mechanism skills use internally: when you invoke a skill, it can register one or more hooks for that invocation without permanently modifying your configuration. Once the skill finishes (or the session ends), those hooks are gone.
+
+**When to use session-scoped hooks**:
+- Skills that need event callbacks only while they are active
+- Temporary automation (e.g., "audit every file I edit during this session only")
+- CI pipelines or orchestration scripts that inject hooks via the API programmatically
+
+Session-scoped hooks follow the same JSON schema as `settings.json` hooks (same event names, matchers, types, and output format) and can be registered through the programmatic API or by skills at invocation time.
+
 **Hook types:**
 
 - **`command`**: Runs a shell command. Receives JSON on stdin, returns JSON on stdout. Most common type.
@@ -9520,7 +9784,7 @@ Hooks receive JSON on stdin with common fields (all events) plus event-specific 
 
 ### Hook Output
 
-Hooks communicate results through exit codes and optional JSON on stdout. Choose one approach per hook: either exit codes alone, or exit 0 with JSON for structured control (Claude Code only processes JSON on exit 0).
+Hooks communicate results through exit codes and optional JSON on stdout. Choose one approach per hook: either exit codes alone, or exit 0 with JSON for structured control. Claude Code only processes JSON on exit 0, so if your hook exits with any other code, stdout and any JSON it contains are silently discarded.
 
 **Universal JSON fields** (all events):
 
@@ -9533,7 +9797,7 @@ Hooks communicate results through exit codes and optional JSON on stdout. Choose
 
 **Event-specific decision control** varies by event type:
 
-- **PreToolUse**: Uses `hookSpecificOutput` with `permissionDecision` (allow/deny/ask), `permissionDecisionReason`, `updatedInput`, `additionalContext`
+- **PreToolUse**: Uses `hookSpecificOutput` with `permissionDecision` (allow/deny/ask/defer), `permissionDecisionReason`, `updatedInput`, `additionalContext`. When multiple PreToolUse hooks return different decisions, precedence is: `deny` > `defer` > `ask` > `allow` (v2.1.89+).
 - **PostToolUse, Stop, SubagentStop, UserPromptSubmit, ConfigChange**: Uses top-level `decision: "block"` with `reason`
 - **TeammateIdle, TaskCompleted**: Exit code 2 only (no JSON decision control)
 - **PermissionRequest**: Uses `hookSpecificOutput` with `decision.behavior` (allow/deny)
@@ -9577,12 +9841,26 @@ When Claude fires `AskUserQuestion` mid-session, interactive prompts are not ava
 
 The hook script is responsible for retrieving the answer (e.g., polling a webhook or reading from a queue). Return `updatedInput` with the answer and `permissionDecision: "allow"` to satisfy the question and continue execution without interactive prompts.
 
+**PreToolUse `defer` decision (v2.1.89+ — headless/non-interactive only)**:
+
+`defer` is designed for headless integrations where Claude is orchestrated by an external process. When a hook returns `permissionDecision: "defer"`, Claude pauses with `stop_reason: "tool_deferred"` and waits. The calling process can then collect input from a user or another system and resume the session with `--resume <session-id>`. In interactive terminal sessions, `defer` is ignored with a warning.
+
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "defer",
+    "permissionDecisionReason": "Awaiting human approval via external workflow"
+  }
+}
+```
+
 ### Exit Codes
 
 | Code | Meaning | Result |
 |------|---------|--------|
 | `0` | Success | Allow operation, parse stdout for JSON output |
-| `2` | Blocking error | Prevent operation (for blocking events), stderr fed to Claude |
+| `2` | Blocking error | Prevent operation (for blocking events), stderr fed to Claude. stdout is silently ignored. |
 | Other | Non-blocking error | Stderr shown in verbose mode (`Ctrl+O`), execution continues |
 
 ### Silent Success Pattern
@@ -15580,19 +15858,60 @@ Embed constraints directly in todos:
 **Reading time**: 5 minutes
 **Skill level**: Week 1+
 
-Control how Claude responds to match your workflow preferences.
+Control how Claude responds to match your workflow and learning preferences. Output styles are a built-in product feature — not a prompt trick — and apply at the session level.
 
-### Output Style Spectrum
+### Built-in Styles
+
+Activate via `/config` → "Preferred output style", or set `outputStyle` in `settings.json`.
+
+| Style | What Claude does | Best for |
+|-------|-----------------|----------|
+| **Default** | Completes tasks efficiently, concise responses | Experienced devs, speed-focused work |
+| **Explanatory** | Adds "Insights" blocks explaining design choices, trade-offs, and codebase patterns | Exploring unfamiliar code, architecture review, onboarding |
+| **Learning** | Pauses at key steps, adds `TODO(human)` markers, asks you to write the meaningful pieces | Junior devs, skill-building, pair programming |
+
+**To activate:**
 
 ```
-← Minimal                                      Verbose →
-───────────────────────────────────────────────────────
-Code only | Code + comments | Explanations | Tutorial
+/config
+→ "Preferred output style"
+→ Select Default / Explanatory / Learning
 ```
 
-### Style Directives
+Or persistent via `settings.json`:
 
-Add to CLAUDE.md or prompt:
+```json
+{
+  "outputStyle": "Explanatory"
+}
+```
+
+The setting persists across sessions. If you have a status line configured, your current output style displays at the bottom of the input field.
+
+### Token impact
+
+Explanatory and Learning produce longer responses by design, increasing output tokens. Prompt caching reduces this cost after the first request in a session.
+
+### Custom Styles
+
+Since December 2025, you can define your own styles in `.claude/styles/`. Create a Markdown file and reference it by filename (without extension) as the `outputStyle` value.
+
+```
+.claude/styles/
+└── strict-reviewer.md    # Custom style definition
+```
+
+```json
+{
+  "outputStyle": "strict-reviewer"
+}
+```
+
+See `examples/styles/` for a ready-to-use custom style template.
+
+### Manual approach (CLAUDE.md directives)
+
+For per-task control without changing the global style, add output directives to your CLAUDE.md:
 
 **Minimal (Expert Mode):**
 ```markdown
@@ -15606,40 +15925,13 @@ Explain significant decisions. Comment complex logic.
 Skip obvious explanations.
 ```
 
-**Verbose (Learning Mode):**
+**Context-aware by task type:**
 ```markdown
-Explain each step. Include alternatives considered.
-Link to documentation for concepts used.
-```
-
-### Context-Aware Styles
-
-```markdown
-## In CLAUDE.md
-
-### Output Preferences
+## Output Preferences
 - **Code reviews**: Detailed, cite specific lines
 - **Bug fixes**: Minimal, show diff only
 - **New features**: Balanced, explain architecture decisions
 - **Refactoring**: Minimal, trust my review
-```
-
-### Format Control
-
-**For code:**
-```markdown
-Format code output as:
-- Full file with changes marked: // CHANGED
-- Diff format for reviews
-- Inline for small changes
-```
-
-**For explanations:**
-```markdown
-Explain using:
-- Bullet points for lists
-- Tables for comparisons
-- Diagrams for architecture
 ```
 
 ### Output Templates
@@ -16124,6 +16416,7 @@ exit 0  # Allow
   - Complex tasks: Leave thinking enabled (default in Opus 4.6)
   - `ultrathink` keyword forces high effort for the next turn specifically (re-introduced in v2.1.68)
 - Set `cleanupPeriodDays` in config to prune old sessions automatically
+- Re-enable thinking summaries if needed: add `"showThinkingSummaries": true` to settings.json (off by default in interactive sessions since v2.1.89)
 - Use `/compact` proactively when context reaches 70%
 - Block sensitive files with `permissions.deny` in settings.json
 - Monitor cost with `/status` and adjust model/thinking levels accordingly
@@ -18154,6 +18447,8 @@ Add the logout button only. Don't add session management or remember-me features
 **Status**: Research Preview (as of January 2026)
 
 Session teleportation allows migrating coding sessions between cloud (claude.ai/code) and local (CLI) environments. This enables workflows where you start work on mobile/web and continue locally with full filesystem access.
+
+> **Related**: [Ultraplan](#ultraplan) uses the same web ↔ terminal handoff specifically for the planning phase — plan in the cloud with browser-based review, then teleport the approved plan back to your terminal for execution. If your primary goal is collaborative plan review before implementation, see Ultraplan first.
 
 ### Evolution Timeline
 
@@ -22436,7 +22731,7 @@ _Quick jump:_ [Commands Table](#101-commands-table) · [Keyboard Shortcuts](#102
 | `/status` | Show session info (context, cost) | Info |
 | `/usage` | Check rate limits and token allocation | Info |
 | `/stats` | View usage statistics with activity graphs | Info |
-| `/output-style` | Change response format (concise/detailed/code) | Display |
+| `/output-style` | **Deprecated** (Oct 2025) — use `/config` → "Preferred output style" instead (Default / Explanatory / Learning) | Display |
 | `/feedback` | Report bugs or send feedback to Anthropic | Support |
 | `/chrome` | Check Chrome connection, manage permissions | Mode |
 | `/config` | View and modify global settings | Config |
@@ -23332,6 +23627,7 @@ Use this agent when:
 name: skill-name
 description: Expert guidance for [domain]
 allowed-tools: Read Grep Bash
+argument-hint: "[--option] <required_arg>"   # if the skill accepts $ARGUMENTS
 ---
 
 # Skill Name
@@ -23355,6 +23651,10 @@ allowed-tools: Read Grep Bash
 ## A.3 Command Template
 
 ```markdown
+---
+description: Brief description of what this command does
+argument-hint: "<first_arg> [second_arg] [--flag]"
+---
 # Command Name
 
 ## Purpose
@@ -24638,4 +24938,4 @@ We'll evaluate and add it to this section if it meets quality criteria.
 
 **Contributions**: Issues and PRs welcome.
 
-**Last updated**: January 2026 | **Version**: 3.38.1
+**Last updated**: January 2026 | **Version**: 3.38.12

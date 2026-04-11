@@ -12,7 +12,7 @@ tags: [cheatsheet, reference]
 
 **Written with**: Claude (Anthropic)
 
-**Version**: 3.38.1 | **Last Updated**: March 2026
+**Version**: 3.38.12 | **Last Updated**: March 2026
 
 ---
 
@@ -21,11 +21,13 @@ tags: [cheatsheet, reference]
 | Command | Action |
 |---------|--------|
 | `/help` | Contextual help |
+| `/powerup` | Interactive animated lessons teaching Claude Code features |
 | `/clear` | Reset conversation |
 | `/compact` | Free up context |
 | `/status` | Session state + context usage |
 | `/context` | Detailed token breakdown |
 | `/plan` | Enter Plan Mode (no changes) |
+| `/ultraplan` | Cloud Plan Mode — draft in cloud, review in browser (v2.1.91+) |
 | `/execute` | Exit Plan Mode (apply changes) |
 | `/model` | Switch model (sonnet/opus/opusplan) |
 | `/insights` | Usage analytics + optimization report |
@@ -95,8 +97,11 @@ tags: [cheatsheet, reference]
 | **LSP Tool** | v2.0.74 | IDE-like navigation: symbols, types, refs. ~50ms vs 45s with grep. 11 languages |
 | **Voice Mode** | v2.1.x | Native voice input, free transcription, no rate limit impact |
 | **Remote Control** | v2.1.51 | Control local session from phone/browser (Research Preview, Pro/Max) |
-| **`/loop`** | v2.1.71 | Recurring scheduler: `/loop 5m check the deploy` — runs in background while you work |
+| **`/loop`** | v2.1.71 | Session-scoped recurring scheduler: `/loop 5m check the deploy` (stops when session ends). Min 1 min, max 50 tasks/session |
+| **Cloud Scheduled Tasks** | 2026 | Machine-off scheduling via `/schedule` or `claude.ai/code/scheduled`. Runs on Anthropic infra, clones repo fresh each run, min 1h interval. Pro/Max/Team/Enterprise |
+| **Desktop Scheduled Tasks** | 2026 | Local machine scheduling via Desktop app. Min 1 min, full local file access, no session required |
 | **Skill Evals** | Mar 2026 | Two skill types: Capability Uplift (fills model gap, fades) / Encoded Preference (encodes workflow, stays). Benchmark Mode, A/B testing, Trigger Tuning. |
+| **Output Styles** | Aug 2025 | `/config` → "Preferred output style": **Default** (concise), **Explanatory** (adds design rationale), **Learning** (pair-programming, `TODO(human)` markers). Custom styles via `.claude/styles/`. |
 
 **Activate LSP**: Add to `~/.claude/settings.json` → `{ "env": { "ENABLE_LSP_TOOL": "1" } }` (requires LSP server installed for your language: `tsserver`, `pylsp`, `gopls`, `rust-analyzer`, `sourcekit-lsp`...)
 
@@ -232,6 +237,7 @@ Model: Sonnet | Ctx: 89.5k | Cost: $2.11 | Ctx(u): 56.0%
 |---------|------------|-------|
 | **Plan Mode** | `Shift+Tab × 2` or `/plan` | Explore without modifying |
 | **OpusPlan** | `/model opusplan` | Opus for planning, Sonnet for execution |
+| **Ultraplan** | `/ultraplan <prompt>` | Cloud planning, browser review, terminal stays free (v2.1.91+, GitHub required) |
 
 > **Opus 4.6** (v2.1.68+): Default effort = **medium** for Max/Team. Use `ultrathink` to force high effort for the next turn. "think hard" remains cosmetic.
 
@@ -249,6 +255,8 @@ Model: Sonnet | Ctx: 89.5k | Cost: $2.11 | Ctx(u): 56.0%
 **Per-skill effort** — add `effort: low` to mechanical skills (commit, sync, scaffold) and `effort: high` to analytical ones (security-audit, architecture-review). Overrides session setting automatically.
 
 **OpusPlan workflow**: `/model opusplan` → `Shift+Tab × 2` (plan with Opus) → `Shift+Tab` (execute with Sonnet)
+
+**Ultraplan workflow**: `/ultraplan <task>` → terminal free while cloud drafts → review inline in browser → approve → execute on web (PR) or teleport back to terminal
 
 **Required for**: features >3 files, architecture, complex debugging
 
@@ -344,6 +352,10 @@ tools: Read, Write, Edit, Bash
 
 ### Command (`.claude/commands/my-command.md`)
 ```markdown
+---
+description: Brief description
+argument-hint: "<required_arg> [--flag]"
+---
 # Command Name
 Instructions for what to do...
 $ARGUMENTS[0] $ARGUMENTS[1] (or $0 $1) - user args
@@ -642,4 +654,4 @@ Speed: `rg` (~20ms) → Serena (~100ms) → ast-grep (~200ms) → grepai (~500ms
 
 **Author**: Florian BRUNIAUX | [@Méthode Aristote](https://methode-aristote.fr) | Written with Claude
 
-*Last updated: March 2026 | Version 3.38.1*
+*Last updated: March 2026 | Version 3.38.12*

@@ -3,8 +3,8 @@
 # Source: guide/ultimate-guide.md
 # Purpose: Condensed index for LLMs to quickly answer user questions about Claude Code
 
-version: "3.38.1"
-updated: "2026-03-30"
+version: "3.38.12"
+updated: "2026-04-08"
 
 # ════════════════════════════════════════════════════════════════
 # DEEP DIVE - Line numbers in guide/ultimate-guide.md
@@ -144,6 +144,28 @@ deep_dive:
   external_monitoring_tools: "guide/ops/observability.md:527"      # ccusage, claude-code-otel, Akto, MLflow, ccboard
   proxying_claude_code: "guide/ops/observability.md:699"           # Proxyman, mitmproxy, ANTHROPIC_API_URL
   ccboard_activity_plan: "docs/resource-evaluations/ccboard-activity-module-plan.md"
+  # Output Styles (built-in behavior modes)
+  output_styles: "guide/ultimate-guide.md:15790"
+  output_styles_setting: "guide/core/settings-reference.md#outputstyle"
+  output_styles_description: "Three built-in modes: Default (concise), Explanatory (adds design rationale blocks), Learning (pair-programming with TODO(human) markers). Activate via /config or outputStyle in settings.json. Custom styles via .claude/styles/."
+  output_styles_custom_template: "examples/styles/custom-style-template.md"
+  output_styles_official_docs: "https://code.claude.com/docs/en/output-styles"
+  # Scheduled Tasks (three methods)
+  scheduled_tasks: "guide/ultimate-guide.md:9004"
+  scheduled_tasks_description: "Three methods: Cloud (/schedule, machine-off, min 1h, Anthropic infra, fresh repo clone), Desktop (local machine, min 1min, full file access), /loop (session-scoped, min 1min, stops when session ends)"
+  scheduled_tasks_cloud: "guide/ultimate-guide.md:9004"
+  scheduled_tasks_cloud_plans: "Pro, Max, Team, Enterprise"
+  scheduled_tasks_cloud_interval: "1 hour minimum"
+  scheduled_tasks_cloud_entry_points: "claude.ai/code/scheduled, Desktop app, /schedule CLI command"
+  scheduled_tasks_cloud_branch_prefix: "claude/ (default)"
+  scheduled_tasks_cloud_official_docs: "https://code.claude.com/docs/en/web-scheduled-tasks.md"
+  scheduled_tasks_desktop: "guide/ultimate-guide.md:9004"
+  scheduled_tasks_desktop_interval: "1 minute minimum"
+  scheduled_tasks_loop_command: "guide/ultimate-guide.md:9004"
+  scheduled_tasks_loop_interval: "1 minute minimum"
+  scheduled_tasks_loop_max_per_session: 50
+  scheduled_tasks_loop_added: "v2.1.71"
+  scheduled_tasks_comparison_table: "guide/ultimate-guide.md:9004"
   # Cost optimization - Local execution bridge
   bridge_script: "examples/scripts/bridge.py"
   bridge_schema: "examples/scripts/bridge-plan-schema.json"
@@ -368,6 +390,13 @@ deep_dive:
   third_party_claude_chic: "https://pypi.org/project/claudechic/"
   third_party_toad: "https://github.com/batrachianai/toad"
   third_party_conductor: "https://docs.conductor.build"
+  # Project Context Bootstrapping (Added 2026-04-08)
+  third_party_tools_context_bootstrap: "guide/ecosystem/third-party-tools.md:427"
+  third_party_codesight: "https://github.com/Houseofmvps/codesight"
+  third_party_codesight_guide: "guide/ecosystem/third-party-tools.md:433"
+  third_party_codesight_purpose: "Zero-dep CLI: AST-based codebase context map (routes, schema, hot files) + wiki articles + 11 MCP tools. 7-12x token savings on base scan."
+  third_party_codesight_when_useful: "TypeScript projects with recognized framework (Express/Hono/tRPC/Fastify/NestJS) and ORM. Useless on Rust. Use --wiki + MCP on large monorepos (>1500 files)."
+  third_party_codesight_limitations: "AST precision TS-only; Next.js App Router = 0 routes; CF Workers raw HTTP = 0 routes; Rust = near-empty output; --init overwrites CLAUDE.md"
   # Configuration Management & Backup (Added 2026-02-02)
   config_management_guide: "guide/ultimate-guide.md:4217"  # Section 3.1 Memory Files
   config_hierarchy: "guide/ultimate-guide.md:4336"  # Global → Project → Local precedence
@@ -454,6 +483,7 @@ deep_dive:
   subscription_opus_ratio: 1946
   subscription_monitoring: 2113
   plan_mode: 576
+  ultraplan: 3003
   rewind: 2566
   mental_model: 2815
   xml_prompting: 3016
@@ -465,6 +495,8 @@ deep_dive:
   # Auto-Memories (v2.1.32+) - Added 2026-02-09
   auto_memories: 4439
   auto_memories_vs_claudemd: 4439
+  auto_memories_file_limits: 5020  # 200-line cap, 25KB max, 200 files/dir — see also memory_limits_detail
+  memory_limits_detail: "MEMORY.md: 200 lines max, 25KB max. Memory dir: 200 files max. Truncation: lines first, then bytes, warning appended."
   # Auto Dream (Community-Discovered) - Added 2026-03-25
   auto_dream: 4945
   auto_dream_phases: 4945
@@ -1070,11 +1102,11 @@ deep_dive:
   myths_tasks_api_autonomous: 20965
   myths_100x_faster: 20997
   myths_reliable_sources: 20983
-  # Quiz System (271 questions, 15 categories)
+  # Quiz System (334 questions, 16 categories)
   quiz_overview: "quiz/README.md"
   quiz_file: "quiz/questions.json"
-  quiz_count: 271
-  quiz_categories: 15
+  quiz_count: 334
+  quiz_categories: 16
   quiz_beginner: "quiz/categories/basics,commands,shortcuts,reference"
   quiz_beginner_count: 60
   quiz_intermediate: "quiz/categories/workflows,context,agents,hooks"
@@ -1157,6 +1189,7 @@ commands:
   /clear: "reset conversation - USE AT >90%"
   /status: "show context % and cost"
   /plan: "read-only mode (safe exploration)"
+  /ultraplan: "cloud plan mode — draft in cloud, review in browser, execute on web or teleport back (v2.1.91+, GitHub required)"
   /execute: "exit plan mode"
   /rewind: "undo changes"
   /model: "switch: sonnet|opus|opusplan"
@@ -1241,6 +1274,9 @@ permissions:
   auto_accept: "editing=auto, execution=ask"
   plan_mode: "editing=blocked, execution=blocked"
   switch: "Shift+Tab"
+  bypass_safety_invariant: 1076  # Paths always prompted even in bypassPermissions (git/, .claude/, shell configs)
+  bypass_safe_paths: ".git/, .claude/ (except worktrees), .bashrc, .zshrc, .bash_profile, .gitconfig, .mcp.json, .claude.json"
+  bypass_note: "Content-specific ask rules (e.g. Bash(npm publish:*)) also survive bypassPermissions"
 
 # ════════════════════════════════════════════════════════════════
 # MCP SERVERS - see deep_dive.mcp_servers
@@ -1335,6 +1371,7 @@ cost:
   sonnet: "most development ($$)"
   opus: "architecture, complex bugs ($$$)"
   opusplan: "plan=opus + execute=sonnet ($$)"
+  ultraplan: "cloud planning (multi-agent Opus 4.6) + browser review + web or terminal execution (v2.1.91+)"
   tip: "--add-dir grants tool access to additional directories (permissions, not context loading)"
   rtk: "Command output filtering (72.6% avg reduction) - rtk git log/status/diff"
 
@@ -1421,13 +1458,46 @@ agent_frontmatter_guide_line: 5639  # Official fields table in ultimate-guide.md
 # HOOK EVENTS - see deep_dive.hooks
 # ════════════════════════════════════════════════════════════════
 hook_events:
-  PreToolUse: "before tool (exit 2 to block)"
-  PostToolUse: "after tool"
-  UserPromptSubmit: "before prompt sent"
-  Notification: "alerts"
+  # Lifecycle
+  SessionStart: "session opened"
+  SessionEnd: "session closed"
+  Setup: "initialization phase"
+  # Agent actions
+  Stop: "agent stopped naturally"
+  StopFailure: "agent stopped with error"
+  PreToolUse: "before tool call (exit 2 to block, return JSON to approve/modify)"
+  PostToolUse: "after tool completes"
+  PostToolUseFailure: "after tool fails"
+  # Permissions
+  PermissionDenied: "permission refused"
+  PermissionRequest: "permission being requested (can return decision)"
+  # Compaction
+  PreCompact: "before context compaction"
+  PostCompact: "after context compaction"
+  # Multi-agent
+  SubagentStart: "subagent spawned"
+  SubagentStop: "subagent completed"
+  TeammateIdle: "teammate waiting"
+  TaskCreated: "new task created"
+  TaskCompleted: "task finished"
+  # Configuration
+  ConfigChange: "settings changed"
+  InstructionsLoaded: "CLAUDE.md loaded"
+  # File system
+  CwdChanged: "working directory changed"
+  FileChanged: "file modified on disk"
+  WorktreeCreate: "git worktree created"
+  WorktreeRemove: "git worktree removed"
+  # User interaction
+  UserPromptSubmit: "before prompt sent to model (can inject additionalContext)"
+  Notification: "UI notification triggered"
+  Elicitation: "model requesting additional info"
+  ElicitationResult: "user responded to elicitation"
+  # Total: 27 events (updated 2026-04-02, source: source code analysis)
 
 # Hook Execution Model (v2.1.0+)
 hooks_execution_model: 7969  # Section in ultimate-guide.md
+hooks_session_scoped: 9507   # Session-scoped hooks (ephemeral, no settings.json, skills use this)
 hooks_async_support: "v2.1.0+ - add 'async: true' for non-blocking execution"
 hooks_async_use_cases: "logging, notifications, formatting, metrics (no feedback needed)"
 hooks_sync_use_cases: "validation, type checking, security (feedback required)"
@@ -1452,7 +1522,7 @@ rules:
 ecosystem:
   this_guide:
     focus: "Education - Learn & master"
-    unique: ["architecture docs", "TDD/SDD methodologies", "271-question quiz", "YAML index", "MCP server"]
+    unique: ["architecture docs", "TDD/SDD methodologies", "334-question quiz", "YAML index", "MCP server"]
   mcp_server:
     npm: "claude-code-ultimate-guide-mcp"
     install: "npx -y claude-code-ultimate-guide-mcp"
@@ -1580,7 +1650,7 @@ ecosystem:
       local: "/Users/florianbruniaux/Sites/perso/claude-code-ultimate-guide-landing/"
       purpose: "Marketing site for Claude Code guide"
       audience: "Developers discovering the guide"
-      features: ["badges (version, templates, lines)", "quiz (271 questions)", "FAQ", "cross-links to Cowork"]
+      features: ["badges (version, templates, lines)", "quiz (334 questions)", "FAQ", "cross-links to Cowork"]
       sync_with: "Guide Code (version, templates count, guide lines)"
     cowork_landing:
       local: "/Users/florianbruniaux/Sites/perso/claude-cowork-guide-landing/"
@@ -1594,7 +1664,7 @@ ecosystem:
       - "Cross-links modified → Update all 4 repos"
     history:
       - date: "2026-01-20"
-        event: "Code Landing sync v3.38.1, 66 templates, cross-links"
+        event: "Code Landing sync v3.38.12, 66 templates, cross-links"
         commit: "5b5ce62"
       - date: "2026-01-20"
         event: "Cowork Landing fix (paths, README, UI badges)"
@@ -1606,7 +1676,7 @@ ecosystem:
 onboarding_matrix_meta:
   version: "2.1.0"
   last_updated: "2026-03-09"
-  aligned_with_guide: "3.38.1"
+  aligned_with_guide: "3.38.12"
   changelog:
     - version: "2.1.0"
       date: "2026-03-09"
@@ -1637,7 +1707,7 @@ onboarding_matrix:
       core: [rules, sandbox_native_guide, commands]
       time_budget: "5 min"
       topics_max: 3
-      note: "SECURITY FIRST - sandbox before commands (v3.38.1 critical fix)"
+      note: "SECURITY FIRST - sandbox before commands (v3.38.12 critical fix)"
 
     beginner_15min:
       core: [rules, sandbox_native_guide, workflow, essential_commands]
@@ -1726,7 +1796,7 @@ onboarding_matrix:
         - default: agent_validation_checklist
       time_budget: "60 min"
       topics_max: 6
-      note: "Dual-instance pattern for quality workflows (v3.38.1)"
+      note: "Dual-instance pattern for quality workflows (v3.38.12)"
 
   learn_security:
     intermediate_30min:
@@ -1737,7 +1807,7 @@ onboarding_matrix:
         - default: permission_modes
       time_budget: "30 min"
       topics_max: 4
-      note: "NEW goal (v3.38.1) - Security-focused learning path"
+      note: "NEW goal (v3.38.12) - Security-focused learning path"
 
     power_60min:
       core: [sandbox_native_guide, mcp_secrets_management, security_hardening]
@@ -1762,7 +1832,7 @@ onboarding_matrix:
       core: [rules, sandbox_native_guide, workflow, essential_commands, context_management, plan_mode]
       time_budget: "60 min"
       topics_max: 6
-      note: "Security foundation + core workflow (v3.38.1 sandbox added)"
+      note: "Security foundation + core workflow (v3.38.12 sandbox added)"
 
     intermediate_120min:
       core: [plan_mode, agents, skills, config_hierarchy, git_mcp_guide, hooks, mcp_servers]

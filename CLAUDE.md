@@ -131,6 +131,63 @@ cd whitepapers/recap-cards && ./render-recap-cards.sh all
 
 **25 fiches planifiées** — 5 prototypes Phase 1-2 livrés : 01, 03, 04, 06, 25.
 
+### Guide Export (EPUB + PDF)
+
+Generates the full `guide/ultimate-guide.md` (~25K lines) as EPUB and/or PDF. Output goes to `dist/`.
+
+```bash
+# Generate both EPUB and PDF (default)
+./scripts/generate-guide-exports.sh
+
+# EPUB only
+./scripts/generate-guide-exports.sh --epub
+
+# PDF only
+./scripts/generate-guide-exports.sh --pdf
+
+# Custom output directory
+./scripts/generate-guide-exports.sh -o /tmp/exports
+
+# Verbose
+./scripts/generate-guide-exports.sh -v
+```
+
+**Stack**: pandoc → EPUB3 (488K) and pandoc + Typst → PDF (2.9 MB).
+
+**Dependency**: `brew install pandoc` (macOS). Typst is auto-detected from Quarto's bundled binary if not installed standalone.
+
+**PDF note**: Internal anchor links are stripped before PDF rendering (Typst label compatibility). The PDF is purely sequential — no clickable cross-refs, but fully readable with TOC.
+
+**Note**: Different from whitepaper EPUBs — this generates the full guide, not individual focused documents. `dist/` is gitignored.
+
+### French Guide Translation + Export
+
+`guide/ultimate-guide.fr.md` is a French translation of the full guide, generated via the Anthropic API.
+
+```bash
+# 1. Translate (or re-translate after updates)
+#    Resumes from .translation-cache/ if interrupted
+python3 scripts/translate-guide.py
+
+# 2. Preprocess for Quarto (strips links, escapes @citations, fixes lists)
+python3 scripts/preprocess-guide.py \
+  --input guide/ultimate-guide.fr.md \
+  --output whitepapers/guide-content-fr.md
+
+# 3. Render PDF (Bold Guy template, ~3.7 MB)
+cd whitepapers && quarto render guide-export-fr.qmd --to whitepaper-typst
+
+# 4. Render EPUB (optional)
+cd whitepapers && quarto render guide-export-fr.qmd --to epub
+```
+
+**Key files**:
+- `scripts/translate-guide.py` — chunked translation, claude-sonnet-4-6, retry x3, ~$3/run
+- `whitepapers/guide-export-fr.qmd` — QMD wrapper (lang: fr)
+- `whitepapers/guide-content-fr.md` — preprocessed content (gitignored, generated)
+
+**Known issue**: `strip_inline_toc` in preprocess-guide.py looks for EN headings — won't strip the FR TOC section, minor visual artifact only.
+
 ### Before Committing
 ```bash
 # Verify versions are synchronized
