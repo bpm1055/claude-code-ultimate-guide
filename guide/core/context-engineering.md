@@ -586,6 +586,83 @@ Resist the pattern of adding every available MCP server to a project's settings 
 3. Move procedural knowledge to skills
 4. Target root CLAUDE.md at under 150 lines after extraction
 
+### Structural Metadata Files
+
+Rules and structure are two different types of context. Conflating them produces files that are too large to load always-on but too important to skip.
+
+**Rules context** answers: *how should I work in this project?* It lives in CLAUDE.md and path-scoped modules. It is relatively stable and almost always relevant.
+
+**Structural context** answers: *what is the shape of this project?* How many API routes exist, which domains have components, where do the nested CLAUDE.md files live, how many Prisma models are there. This information is only needed for implementation tasks — creating a new file, adding a route, navigating an unfamiliar domain — and is irrelevant for debugging, documentation, or code review sessions.
+
+Loading structural context always wastes tokens. Not having it at all means Claude browses the filesystem manually at the start of every implementation task, consuming turns and generating noise.
+
+The pattern: a small, auto-generated YAML file (~1K tokens) that captures the structural shape of the codebase, registered in CLAUDE.md as a pointer rather than auto-imported.
+
+**What to include** — five sections, nothing more:
+
+| Section | Contents | Example |
+|---------|----------|---------|
+| `layers` | Architecture tiers with root paths and file counts | `routers: { root: "src/api", count: 33 }` |
+| `component_domains` | Feature domains with paths and component counts | `{ name: "chat", count: 66 }` |
+| `nested_contexts` | All CLAUDE.md / AI_INSTRUCTIONS.md under src/, with line count and focus | `{ path: "src/server/CLAUDE.md", lines: 45 }` |
+| `stats` | Aggregate numbers: total files, test counts, schema model count | `total_ts_files: 543` |
+| `key_paths` | Canonical paths Claude frequently gets wrong | `prisma_schema: "src/server/db/prisma/schema.prisma"` |
+
+Keep the file below 1K tokens. Beyond that, you are adding detail that belongs in the actual source files.
+
+**The pointer registration pattern**
+
+Do not auto-load this file with `@machine-readable/code-map.yaml` in CLAUDE.md. Instead, register it in a reference table that tells Claude what the file contains and when to reach for it:
+
+```markdown
+## Context Indexes (load on demand)
+
+| File | Contents | When to load |
+|------|----------|--------------|
+| machine-readable/code-map.yaml | Architecture layers (counts + roots), component domains, nested context files, project stats | Before any implementation task: new file, new route, new component |
+| machine-readable/ai-config.yaml | Full AI tooling config: rules, skills, commands, agents, hooks | When auditing or modifying AI configuration |
+| PROJECT_INDEX.md | Detailed architecture narrative, ADRs, domain glossary | Deep architectural work only |
+```
+
+This pattern scales: Claude reads the table at session start, knows what reference files exist and why, and loads them only when the current task warrants it. A debugging session never touches the code map. An implementation task loads it in one tool call.
+
+**What "auto-generated" means in practice**
+
+The generation script should do only three things: call `readdirSync` on each layer root to count files, walk the src tree to total `.ts`/`.tsx` files, and glob for nested CLAUDE.md files to populate `nested_contexts`. No AST parsing, no database queries, no network calls. The whole script runs in under a second. Add it to your `pnpm ai:sync` (or equivalent) task.
+
+The key design constraint: **never add hand-curated content to this file.** The moment you do, you have a file that can drift. Auto-generated files cannot lie about the current state of the codebase; files with manual content can and will.
+
+**Production example** (Méthode Aristote EdTech platform, ~1,300 source files):
+
+```yaml
+version: "1.0.0"
+architecture: "Client → tRPC → Router → Service → Repository → Prisma"
+
+layers:
+  routers:
+    root: "src/server/api/routers"
+    description: "Tier 1 — Zod validation, delegate to service"
+    count: 33
+  services:
+    root: "src/server/api/services"
+    description: "Tier 2 — business logic, enforcePermission()"
+    count: 61
+  repositories:
+    root: "src/server/api/repositories"
+    description: "Tier 3 — CRUD Prisma only"
+    count: 38
+
+stats:
+  total_ts_files: 543
+  total_tsx_files: 798
+  prisma_models: 48
+  unit_tests: 268
+```
+
+With this file registered as a pointer, Claude answers "how many tRPC routers exist?" in a single lookup rather than walking `src/server/api/routers/` manually. For the implementation task "add a payment router", it immediately knows the correct root, the count, and the architectural constraint — before reading a single source file.
+
+A ready-to-use template is available at [`examples/context-engineering/code-map-template.yaml`](../examples/context-engineering/code-map-template.yaml).
+
 ---
 
 ## 5. Team Assembly

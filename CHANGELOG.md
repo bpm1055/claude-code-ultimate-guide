@@ -6,13 +6,132 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+- **audit-prompt.md v5.1**: context-evaluator.ai referenced in "Deepen Your Audit" block and Section 8 table as a zero-install LLM-native alternative for Dimension 1 (Memory and Context)
+- **context-audit-prompt.md v1.1**: context-evaluator.ai added to Section 9 Related Resources
+
+## [3.39.1] - 2026-04-16 (2)
+
+### Documentation
+
+- **Claude Code Releases**: Updated tracking to v2.1.111
+  - Claude Opus 4.7 xhigh effort level; Auto mode for Max subscribers no longer requires --enable-auto-mode
+  - /ultrareview skill for cloud-based parallel multi-agent code review
+  - /less-permission-prompts skill auto-generates allowlist from transcript history
+  - Plan files named after prompts; read-only bash glob patterns no longer prompt
+  - Many bug fixes (iTerm2+tmux tearing, LSP diagnostics, /resume tab-complete, /clear session name)
+  - Reverted v2.1.110 non-streaming fallback retry cap
+
+## [3.39.1] - 2026-04-16
+
 ### Added
 
-- **Threat Database v2.13.0** (`examples/commands/resources/threat-db.yaml`): Updated with threats through 2026-04-11. Added 6 new CVEs (Apollo MCP Server DNS rebinding CVE-2026-35577, runZero Platform info leak CVE-2026-5374, taskwarrior command injection CVE-2026-5833, mcp-summarization-functions CVE-2026-5619, n8n-MCP CVE-2026-39974, FastMCP OAuthProxy OAuth bypass CVE-2026-27124), 2 new attack techniques (T023 Lies-in-the-Loop UI deception, T024 Prompt Poaching via browser extension), 2 new scanning tools (ClawArmor by AccuKnox, ClawSec by prompt-security), 2 new research papers (arXiv 2604.06550 Hierarchical Triage Framework, arXiv 2604.04759 Real-World Safety Analysis of OpenClaw), and updated minimum safe versions for apollo-mcp-server (1.7.0), runzero-platform (4.0.260202.0), fastmcp, and a11y-mcp (1.0.6).
+- **context-evaluator** (`guide/ecosystem/third-party-tools.md` Configuration Quality section): New entry for the Packmind OSS tool that evaluates CLAUDE.md / AGENTS.md quality using 17 AI evaluators (13 error + 4 suggestion). Includes the zero-install web version at context-evaluator.ai, the Caliber comparison table, and cross-ref to the 2 patterns extracted from its source.
 
-- **`examples/commands/scaffold.md`**: Interactive coaching command that asks 4-5 targeted questions to determine whether a use case calls for an agent, command, skill, hook, or rule — then generates a ready-to-use template. Covers decision tree logic, hybrid case handling, and produces scaffolds for all five component types. Inspired by real-world configurations from field projects.
-- **Scheduled Tasks** (`guide/ultimate-guide.md` §6.1, `guide/cheatsheet.md`, `machine-readable/reference.yaml`): Documented all four scheduling methods as a unified section. Cloud Scheduled Tasks (`/schedule`) was previously undocumented in the guide: runs on Anthropic infrastructure, machine-off capable, minimum 1-hour interval, fresh GitHub repo clone per run, branches prefixed `claude/`, available on Pro/Max/Team/Enterprise. Desktop Scheduled Tasks: local machine, minimum 1-minute interval, full local file access, missed runs queued and replayed on reopen. DIY method: system cron + `claude --print` for full control without Desktop app. `/loop` section updated with explicit constraints (max 50 tasks/session, max 3 days, session-scoped). Added comparison table across all three methods. Updated cheatsheet "Features Méconnues" table with separate rows for Cloud and Desktop tasks. Added 15 indexed entries to `reference.yaml`. All launched March 9, 2026.
-- **`scripts/update-cc-releases.sh`**: Extended release tracking to cover three sources instead of one. Added Source 2 (weekly docs digest at `code.claude.com/docs/en/whats-new/YYYY-wN.md`) for Desktop/Web/Cloud features not published in the GitHub CHANGELOG — this was the gap that caused Scheduled Tasks to be missed. Added Source 3 (reference links to Help Center and GitHub releases). Script now fetches the last 3 weekly digest pages and surfaces key feature headlines alongside the CLI CHANGELOG diff.
+- **Runtime Prompt Logging** (`guide/core/skill-design-patterns.md`): New pattern: write the full evaluator prompt to disk as a blocking `await` BEFORE invoking the AI provider. Survives provider crashes, never throws, always-on (not gated by a debug flag). Observed in PackmindHub/context-evaluator (MIT).
+
+- **Adaptive Unified/Parallel Mode** (`guide/core/skill-design-patterns.md`): New pattern: estimate combined token count of input files before launching agents. Below 100K tokens, one unified agent handles all files (cross-file contradiction detection). Above threshold, each file gets an independent parallel agent. Concrete threshold decision with `canUseUnifiedMode()`. Observed in PackmindHub/context-evaluator (MIT).
+
+- **context-evaluator evaluation** (`docs/resource-evaluations/context-evaluator-evaluation.md`): Score 4/5. Documents all 4 patterns identified in the source read, integration decisions, and delta vs Caliber.
+
+- **Credits: context-evaluator** (`guide/core/credits.md`): New entry for PackmindHub/context-evaluator (MIT). Covers Pattern 7 (Runtime Prompt Logging) and Pattern 8 (Adaptive Unified/Parallel Mode).
+
+## [3.39.0] - 2026-04-16
+
+### Added
+
+- **Skeptical Reviewer Pattern** (`guide/ultimate-guide.md` §9.20 Agent Teams): New subsection documenting the four-agent pipeline design where a dedicated "skeptical reviewer" sub-agent filters false positives from parallel audit agents. Includes false-positive criteria, evidence requirement rule, KEEP/REJECT log pattern, and connection to Swarm Mode. Inspired by the Packmind playbook-audit open-source skill (Apache 2.0, Cédric Teyton).
+
+- **MCP Reference File Pattern** (`guide/ecosystem/mcp-servers-ecosystem.md`): New section "Documenting an MCP for Claude: The Reference File Pattern" explaining how a `references/<mcp-name>.md` file injected before any MCP call reduces query failures from syntax gotchas, non-obvious parameter semantics, and rate limit behavior. Includes the three content types, file structure, and link to the fork-ready template.
+
+- **`examples/skills/mcp-integration-reference/SKILL.md`**: Fork-ready template skill demonstrating the MCP reference file pattern. Five-step structure: read reference file, gather scope, fetch data, group and analyze, generate report. Designed to be adapted for any MCP server (Sentry, Datadog, PagerDuty, Linear, etc.).
+
+- **`examples/skills/mcp-integration-reference/references/sentry-mcp.md`**: Complete Sentry MCP reference file template. Covers available tools with full parameter semantics, DDSQL-equivalent query syntax gotchas, pagination approach, known noise exclusion patterns, and five working query examples. Serves as the canonical example of what a good MCP reference file looks like.
+
+- **`guide/core/credits.md`**: New file centralizing attributions for patterns borrowed from open-source engineering work. Current entries: Packmind (6 patterns, Apache 2.0, Cédric Teyton) and Anthropic skill-creator. Linked from README and cited inline at each pattern section.
+
+- **`guide/core/skill-design-patterns.md`**: New reference file covering 6 architectural patterns for multi-agent and multi-file skills: Shared Ground Truth Injection, Pre-filtered References via Frontmatter Paths, Detection-Only Scope Boundary, Input-Handler Dispatch, Versioned Sub-directories for Tool-Version Coupling, and Two-Tier Standards. Each pattern includes the problem it solves, the pattern structure, token trade-offs, and when to apply it. Linked from README.
+
+- **Handoff Triad Pattern** (`guide/ultimate-guide.md` §2 Session Handoff Pattern): New subsection after the existing handoff template documenting the three-command protocol (`create`, `resume`, `update`) with per-section merge rules. Key addition: append-only Work Done log creates an auditable history across sessions. Includes the merge rules table and link to fork-ready templates.
+
+- **`examples/commands/handoff/create-handoff.md`**: Fork-ready template for session handoff creation. Generates `claudedocs/handoffs/handoff_YYYYMMDD_HHMMSS.md` with 8 structured sections. Includes explicit rules: append-only Work Done, `path:line` format for file references, 600-word target for quick loading.
+
+- **`examples/commands/handoff/resume-handoff.md`**: Fork-ready template for loading a handoff document. Parses all sections, summarizes understanding in 3-5 bullets, and requires explicit user confirmation before starting work.
+
+- **`examples/commands/handoff/update-handoff.md`**: Fork-ready template implementing the full merge rules table (keep/append/replace per section). Includes the fallback to new-file creation when no existing handoff is found, and per-step confirmation output.
+
+- **Recipe Template: Context Validation Checkpoints** (`guide/ultimate-guide.md` §6.3 Command Template): New subsection after the existing command template documenting the checkpoint pattern: a checklist of preconditions Claude must verify before executing recipe steps. Prevents mid-step failures in one-way operations.
+
+- **`examples/commands/recipe-template.md`**: Fork-ready template demonstrating the Context Validation Checkpoints pattern. Includes the checkpoints section, numbered recipe steps with per-step validation, error handling table, and adaptation notes.
+
+- **Plans and Specs as Committed Artifacts** (`guide/core/skill-design-patterns.md`): New section (M4 pattern) documenting the practice of committing plan/spec pairs under `.claude/` as dated markdown files (`YYYY-MM-DD-<slug>.md` + `YYYY-MM-DD-<slug>-design.md`). Covers why it beats session-only plans (grep-able, resume-able, captures rationale), when to use it, and the naming convention. Inspired by the Packmind `.claude/plans/` convention (Apache 2.0).
+
+- **`examples/scripts/statusline.py`**: Fork-ready context bar script for Claude Code's `statusCommand` setting. Displays a color-coded progress bar (green/yellow/red), context percentage, git branch, and model name. Key insight documented with inline comments: subtracts 32,000 tokens from the total context window to compute the effective input window (output buffer reservation). Adapted from Packmind's `.claude/statusline.py` (Apache 2.0).
+
+- **`machine-readable/reference.yaml`**: Added 20+ entries for all Packmind pattern integrations: `skill_design_patterns_*` (7 patterns), `mcp_reference_file_*`, `skeptical_reviewer_*`, `handoff_triad_*`, `recipe_template_*`, `statusline_*`, and `credits_guide`.
+
+### Changed
+
+- **`tools/audit-prompt.md` v5.0 — orchestrator architecture** (`tools/audit-prompt.md`): Rewrote from a flat 130+ checkbox checklist into an 8-dimension weighted orchestrator (100 pts). The prompt now delegates each domain to a specialized skill or command if installed (eval-skills, eval-rules, token-audit, audit-agents-skills, security-check), with inline bash fallback when not available. New dimensions: Memory & Context (20 pts, delegates to `/token-audit`), Rules Hygiene (10 pts, delegates to `/eval-rules`), Skills Quality (10 pts, delegates to `/eval-skills`), Agents/Commands Quality (10 pts, delegates to `/audit-agents-skills`), Security Posture (20 pts, delegates to `/security-check`), MCP Ecosystem (10 pts), Workflow Commands (10 pts), Freshness & Best Practices (10 pts). Phase 1 replaces 3 separate bash blocks with one unified inventory scan. Phase 3 produces an 8-row scorecard instead of a flat findings table. Added `--include-global` scope flag, "Deepen Your Audit" section with install commands for all delegated skills, and 10 new glossary terms (Context Budget, Rules auto-loaded, paths: frontmatter, effort: field, argument-hint, Hook Profiles, Threat Database, Cache Bug #40524, managed-settings.d/, Routines). Version updated from 4.0 (guide v3.37.6) to 5.0 (guide v3.38.17+).
+
+### Fixed
+
+- **Architecture.md broken image** (`guide/core/architecture.md`): Replaced missing `./images/claude-code-architecture-overview.jpeg` (file never committed) with a Mermaid flowchart showing Claude Code as an orchestration layer over Claude models and the development environment. Attribution to Mohamed Ali Ben Salem preserved as a text link. Fixes [#25](https://github.com/FlorianBruniaux/claude-code-ultimate-guide/issues/25).
+
+## [3.38.17] - 2026-04-16
+
+### Added
+
+- **Context engineering: Structural Metadata Files** (`guide/core/context-engineering.md`): New subsection in Section 4 documenting the pattern of separating rules context (CLAUDE.md) from structural context (code-map.yaml). Covers the two-type distinction, five standard sections, pointer registration table, auto-generation approach, and a production example from a ~1,300-file TypeScript codebase (Méthode Aristote).
+
+- **`examples/context-engineering/code-map-template.yaml`**: Generic starter template for structural metadata files — small auto-generated YAML (~1K tokens) capturing codebase shape: architecture layers with file counts, component domains, nested CLAUDE.md inventory, project stats, key paths. Separate from rules/config context.
+
+- **`examples/context-engineering/context-bench.sh`**: Benchmark script measuring impact of structural metadata files. `--budget` compares token cost across three loading strategies (no code-map / always-on / on-demand). `--probe` tests what % of structural questions are answerable from code-map.yaml without filesystem traversal. `--compare` diffs two code-map versions over time.
+
+- **`examples/skills/eval-rules/SKILL.md`**: Skill for rules-focused audit — resolves `paths:` globs against real project files, flags dead or over-broad patterns, interactive rule-by-rule review with in-place edit support.
+
+- **`examples/commands/routines-discover.md`**: Slash command `/routines-discover` surfacing actionable Routine candidates. Audits five angles (scheduled maintenance, event-driven reactions, alert response, cross-system sync, release automation), outputs ranked use case cards with trigger type, input/output, value estimate, and blockers sorted by value-to-effort ratio.
+
+- **Security hardening** (`.claude/settings.json`, `.claude/hooks/`): Applied the guide's own recommendations to this repo. Added `permissions.deny` blocking `.env*`, `*.pem`, `credentials*`, `id_rsa*`, `id_ed25519*`, `secrets/**`. Added `PreToolUse` hook wiring `dangerous-actions-blocker.sh` for Bash, Edit, Write.
+
+- **`examples/commands/scaffold.md`**: Coaching command that asks 4-5 targeted questions to determine whether a use case calls for agent, command, skill, hook, or rule — generates a ready-to-use template for the chosen component type.
+
+- **`scripts/update-cc-releases.sh`**: Extended release tracking to three sources. Added Source 2 (weekly docs digest `code.claude.com/docs/en/whats-new/YYYY-wN.md`) for Desktop/Web/Cloud features not in the GitHub CHANGELOG. Added Source 3 (reference links to Help Center and GitHub releases).
+
+### Changed
+
+- **`examples/context-engineering/ci-drift-check.yml`**: Extended CI trigger section with commented code-level path triggers (`prisma/schema.prisma`, API router dirs) and note on `DRIFT_WARN_ONLY` for gradual gate introduction.
+
+- **`guide/ultimate-guide.md`**: Added `/eval-rules` to audit tools callout (three tools: `audit-agents-skills`, `eval-skills`, `eval-rules`).
+
+- **`CLAUDE.md` split into `@docs` references**: Reduced from 618 lines to 274 lines (-56%). Extracted four reference sections into `docs/` files loaded on demand via `@refs`.
+
+### Documentation
+
+- **Context management** (`guide/ultimate-guide.md`): Added "bad compact" antipattern callout and updated context rot threshold for 1M context window (Anthropic internal data: 300-400K tokens, task-dependent).
+
+- **Claude Code Releases**: Updated tracking to v2.1.110 — `/tui` command, Push notification tool, `--resume/--continue` for scheduled tasks, `/focus` command, `autoScrollEnabled` config, 30+ bug fixes.
+
+- **Routines (Cloud Automation)** (`guide/ultimate-guide.md` §6.1): Documented April 14, 2026 Routines launch. API trigger (dedicated HTTP POST endpoint, bearer token, returns `session_url`), GitHub event trigger (17 event types, PR filters, requires Claude GitHub App), per-plan daily run limits (Pro 5/day, Max 15/day, Team/Enterprise 25/day).
+
+- **`guide/ecosystem/ai-ecosystem.md` §15**: Project Glasswing & Claude Mythos Preview — defensive security initiative with 11 launch partners, automated vulnerability discovery, thousands of high-severity CVEs found in OpenBSD/FFmpeg/Linux kernel.
+
+- **Threat Database v2.13.0**: 6 new CVEs, 2 new attack techniques (T023 Lies-in-the-Loop, T024 Prompt Poaching), 2 new scanning tools (ClawArmor, ClawSec), 2 new research papers.
+
+## [3.38.16] - 2026-04-15
+
+### Documentation
+
+- **Claude Code Releases**: Updated tracking to v2.1.109
+  - v2.1.108: ENABLE_PROMPT_CACHING_1H env var (1-hour cache TTL), /recap session context feature, built-in slash commands discoverable via Skill tool, /undo alias for /rewind, /resume defaults to current directory
+  - v2.1.109: Improved extended-thinking indicator with rotating progress hint
+
+## [3.38.15] - 2026-04-14
+
+### Documentation
+
+- **Claude Code Releases**: Updated tracking to v2.1.107
+  - v2.1.105: PreCompact hook blocking, EnterWorktree path parameter, plugin background monitors, /proactive alias for /loop, WebFetch strips CSS/JS, /doctor with status icons and f-to-fix, skill descriptions cap raised to 1,536 chars, multiple bug fixes
+  - v2.1.107: Show thinking hints sooner during long operations
 
 ## [3.38.14] - 2026-04-10
 

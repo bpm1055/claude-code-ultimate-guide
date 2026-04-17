@@ -3,8 +3,8 @@
 # Purpose: Track Claude Code product releases for documentation sync
 # Maintained: Manual updates when new releases are announced
 
-latest: "2.1.101"
-updated: "2026-04-10"
+latest: "2.1.111"
+updated: "2026-04-16"
 
 # ════════════════════════════════════════════════════════════════
 # RELEASES (newest first, condensed highlights only)
@@ -14,6 +14,48 @@ releases:
   # ─────────────────────────────────────────────────────────────
   # 2.1.x Series (January-April 2026)
   # ─────────────────────────────────────────────────────────────
+
+  - version: "2.1.111"
+    date: "2026-04-16"
+    highlights:
+      - "⭐ Claude Opus 4.7 xhigh effort level (between high and max); Auto mode for Max subscribers no longer requires --enable-auto-mode"
+      - "⭐ /ultrareview skill — cloud-based parallel multi-agent code review; invoke with no args for current branch or /ultrareview <PR#>"
+      - "⭐ /less-permission-prompts skill — scans transcripts and proposes a prioritized read-only allowlist for settings.json"
+      - "Plan files named after prompts; read-only bash with glob patterns and cd <dir> && no longer trigger prompts; interactive /effort slider; many bug fixes"
+
+  - version: "2.1.110"
+    date: "2026-04-16"
+    highlights:
+      - "⭐ /tui command and tui setting — run /tui fullscreen for flicker-free rendering in the same conversation"
+      - "⭐ Push notification tool — Claude can send mobile push notifications when Remote Control and 'Push when Claude decides' are enabled"
+      - "⭐ --resume/--continue now resurrects unexpired scheduled tasks"
+      - "/focus command for focus view; Ctrl+O now toggles verbose transcript only; autoScrollEnabled config; session recap for telemetry-disabled users; 30+ bug fixes"
+
+  - version: "2.1.109"
+    date: "2026-04-15"
+    highlights:
+      - "Improved extended-thinking indicator with a rotating progress hint"
+
+  - version: "2.1.108"
+    date: "2026-04-15"
+    highlights:
+      - "⭐ ENABLE_PROMPT_CACHING_1H env var — opt into 1-hour prompt cache TTL on API key, Bedrock, Vertex, Foundry; FORCE_PROMPT_CACHING_5M to force 5-minute TTL"
+      - "⭐ /recap command — provides context when returning to a session; configurable in /config; force with CLAUDE_CODE_ENABLE_AWAY_SUMMARY if telemetry disabled"
+      - "Built-in slash commands (/init, /review, /security-review) now discoverable and invokable via the Skill tool"
+      - "/undo alias for /rewind; /resume defaults to current directory (Ctrl+A for all); improved model-switch warning mid-conversation"
+
+  - version: "2.1.107"
+    date: "2026-04-14"
+    highlights:
+      - "Show thinking hints sooner during long operations"
+
+  - version: "2.1.105"
+    date: "2026-04-13"
+    highlights:
+      - "⭐ PreCompact hook support — hooks can block compaction by exiting with code 2 or returning {decision:block}"
+      - "EnterWorktree tool gains path parameter to switch into an existing worktree; /proactive alias for /loop"
+      - "Background monitor support for plugins via top-level monitors manifest key; /doctor status icons with f-to-fix"
+      - "WebFetch strips <style>/<script> contents; stalled API streams abort after 5 min then retry non-streaming; skill descriptions cap raised to 1,536 chars"
 
   - version: "2.1.101"
     date: "2026-04-10"

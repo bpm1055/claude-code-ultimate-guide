@@ -17,7 +17,7 @@ Annotated templates that teach you **why** patterns work, not just how to config
 | [`agents/`](./agents/) | Custom AI personas for specialized tasks | 14 + 2 collections |
 | [`commands/`](./commands/) | Slash commands (workflow automation) | 32 |
 | [`hooks/`](./hooks/) | Event-driven security & automation scripts | 34 |
-| [`skills/`](./skills/) | Reusable knowledge modules — [9 on SkillHub](https://skills.palebluedot.live/owner/FlorianBruniaux) | 19 |
+| [`skills/`](./skills/) | Reusable knowledge modules — [9 on SkillHub](https://skills.palebluedot.live/owner/FlorianBruniaux) | 20 |
 | [`claude-md/`](./claude-md/) | CLAUDE.md configuration profiles | 7 |
 | [`config/`](./config/) | Settings, MCP, git templates | 8 |
 | [`memory/`](./memory/) | CLAUDE.md memory file templates | 2 |
@@ -77,7 +77,7 @@ Annotated templates that teach you **why** patterns work, not just how to config
 | [analytics-with-eval/](./agents/analytics-with-eval/) | Collection: analytics agent + evaluation hooks | — |
 | [cyber-defense/](./agents/cyber-defense/) | Collection: anomaly detector, log ingestor, risk classifier, threat reporter | — |
 
-### Skills (19) — [9 on SkillHub](https://skills.palebluedot.live/owner/FlorianBruniaux)
+### Skills (20) — [9 on SkillHub](https://skills.palebluedot.live/owner/FlorianBruniaux)
 
 | File | Purpose |
 |------|---------|
@@ -100,6 +100,7 @@ Annotated templates that teach you **why** patterns work, not just how to config
 | [issue-triage/](./skills/issue-triage/) | 3-phase issue backlog management (audit, deep analysis, validated actions) |
 | [cyber-defense-team/](./skills/cyber-defense-team/) | Multi-agent cyber defense team orchestration |
 | [talk-pipeline/](./skills/talk-pipeline/) | 6-stage pipeline: raw material to slides via Kimi |
+| [eval-rules/](./skills/eval-rules/) | Audit `.claude/rules/` files — resolves glob patterns against real project files, interactive usefulness review, in-place edits |
 
 ### Commands (32)
 

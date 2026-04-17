@@ -16,7 +16,7 @@ tags: [guide, reference, workflows, agents, hooks, mcp, security]
 
 **Last updated**: January 2026
 
-**Version**: 3.38.12
+**Version**: 3.39.1
 
 ---
 
@@ -1821,6 +1821,8 @@ When context gets high:
 - Preserves key context
 - Reduces usage by ~50%
 
+> **When `/compact` goes wrong**: Compaction fires when the model has the most accumulated context, meaning it is also at its most distracted point. If the model cannot predict where the work is heading (e.g., auto-compact fires mid-debugging and your next message is "now fix that warning in bar.ts"), it may drop future-relevant info from the summary. Mitigate by compacting proactively and with context: `/compact focus on the auth refactor, drop the test debugging` guides the summary toward what matters next. (Source: Anthropic internal guidance)
+
 **Option 2: Clear** (`/clear`)
 - Starts fresh
 - Loses all context
@@ -1956,7 +1958,7 @@ Option 1 gives full control but requires discipline. Option 2 is safer if you fo
 
 Research shows LLM performance degrades significantly with accumulated context:
 - **20-30% performance gap** between focused and polluted prompts ([Chroma, 2025](https://research.trychroma.com/context-rot))
-- Degradation starts at ~16K tokens for Claude models
+- Degradation starts at ~16K tokens for older Claude models (Chroma, 2025); Anthropic reports noticeable degradation around 300-400K tokens on the 1M context window (task-dependent, not a fixed threshold)
 - Failed attempts, error traces, and iteration history dilute attention
 
 Instead of managing context within a session, you can **restart with a fresh session per task** while persisting state externally.
@@ -2728,6 +2730,31 @@ You: "Create a session handoff document for what we accomplished today"
 ```
 
 Claude will analyze git status, conversation history, and generate a structured handoff.
+
+**Handoff Triad Pattern**: For teams or multi-session workflows, a three-command protocol adds explicit merge semantics on top of the basic handoff. Three commands work together:
+
+| Command | Job |
+|---------|-----|
+| `/handoff:create` | Generates the structured document from current session context |
+| `/handoff:resume` | Loads a handoff document, confirms understanding, and waits for approval before starting |
+| `/handoff:update` | Updates an existing handoff with section-specific merge rules (see below) |
+
+The critical addition is per-section merge rules in `update`:
+
+| Section | Merge Rule |
+|---------|------------|
+| Task, Scope | Keep or refine |
+| Files | Merge — combine original with new files touched |
+| Discoveries | Append — add new findings, never remove prior ones |
+| Work Done | **Append only** — add new entries, never delete history, include commit hashes |
+| Status | Replace — write current state |
+| Next Steps | Replace — write updated checklist |
+
+The append-only Work Done section creates an audit trail across sessions. Even if earlier work was revised, the revision appears as a new entry rather than an overwrite.
+
+Fork-ready templates at `examples/commands/handoff/` in this repo.
+
+> Pattern inspired by [Packmind's handoff command triad](https://github.com/packmind/packmind) (Apache 2.0). See [Credits](./core/credits.md).
 
 ## 2.3 Plan Mode
 
@@ -5441,7 +5468,7 @@ The `.claude/` folder is your project's Claude Code directory for memory, settin
 | Personal preferences | `CLAUDE.md` | ❌ Gitignore |
 | Personal permissions | `settings.local.json` | ❌ Gitignore |
 
-### 3.38.12 Version Control & Backup
+### 3.39.1 Version Control & Backup
 
 **Problem**: Without version control, losing your Claude Code configuration means hours of manual reconfiguration across agents, skills, hooks, and MCP servers.
 
@@ -7486,9 +7513,10 @@ skills-ref validate ./my-skill      # Check frontmatter + naming conventions
 skills-ref to-prompt ./my-skill     # Generate <available_skills> XML for agent prompts
 ```
 
-> **Beyond spec validation**: Two complementary audit tools:
+> **Beyond spec validation**: Three complementary audit tools:
 > - `/audit-agents-skills` — broad quality audit across agents, skills, AND commands (16 criteria, 32-pt weighted grading). Use for general production readiness.
 > - `/eval-skills` — skills-only audit with effort-level inference engine. Discovers all skills, infers the appropriate `effort` level from content analysis, flags mismatches, and prints copy-paste ready frontmatter patches. Use when adding `effort` fields to an existing library or auditing a new project. See `examples/skills/eval-skills/`.
+> - `/eval-rules` — rules-focused audit with interactive usefulness review. Resolves every `paths:` glob pattern against real project files, flags dead or over-broad patterns, then asks you rule-by-rule whether each rule still fires in the right context and whether its content is still accurate. Can apply edits in-place based on your answers. Use for periodic rules hygiene or when a rule fires too often/never. See `examples/skills/eval-rules/`.
 
 ### Skill Quality Gates
 
@@ -9003,46 +9031,124 @@ Added in v2.1.63, `/batch` orchestrates large-scale codebase changes by distribu
 
 ### Scheduled Tasks: Three Methods
 
-Claude Code provides three distinct mechanisms for running recurring tasks. They differ on where the execution happens, whether a machine needs to be on, and how much infrastructure access you get.
+Claude Code provides three distinct mechanisms for running recurring tasks. They differ on where the execution happens, how the task is triggered, and whether a local machine needs to be on.
 
 #### Comparison Table
 
-| | Cloud Tasks (`/schedule`) | Desktop Tasks | `/loop` |
+| | Routines | Desktop Tasks | `/loop` |
 |--|--|--|--|
 | Runs on | Anthropic cloud | Local machine | Local machine |
 | Machine must be on | No | Yes | Yes |
 | Session must be open | No | No | Yes |
 | Persists between restarts | Yes | Yes | No |
 | Local file access | No (fresh repo clone) | Yes | Yes |
+| Trigger types | Schedule / API / GitHub events | Schedule only | In-session only |
 | MCP servers | Configured connectors per task | Config files + connectors | Inherited from session |
 | Permission prompts | None (autonomous) | Configurable | Inherited from session |
-| Minimum interval | 1 hour | 1 minute | 1 minute |
+| Minimum interval | 1 hour (schedule trigger) | 1 minute | 1 minute |
+| Daily run limit | 5–25/day (plan-based) | Unlimited | Session-scoped |
 
-#### Cloud Scheduled Tasks (`/schedule`)
+#### Routines (Cloud Automation)
 
-Cloud tasks run on Anthropic's infrastructure. Your machine can be completely off. Each run clones a fresh copy of your GitHub repository, so there is no access to local files outside of version control.
+Routines run on Anthropic's infrastructure — your machine can be completely off. Each run clones a fresh copy of your GitHub repository. Three trigger types can be combined on a single routine.
+
+> **Research preview**: behavior, limits, and API surface may change.
 
 **Access**: Pro, Max, Team, and Enterprise plans.
 
-**Create a task** via any of these three entry points:
-- `claude.ai/code/scheduled` — web interface
-- Desktop app — visual schedule builder
-- `/schedule` command in the CLI
+**Daily run limits**:
+
+| Plan | Runs/day |
+|------|----------|
+| Pro | 5 |
+| Max | 15 |
+| Team / Enterprise | 25 |
+
+Extra runs are available with billing enabled beyond the daily cap.
+
+**Create a routine** via:
+- `claude.ai/code/routines` — web interface
+- Desktop app — **New task** → **New remote task**
+- `/schedule` in the CLI (schedule trigger only; API and GitHub triggers require the web UI)
+
+**How each run works**: Anthropic clones your repo, spins up a Claude session with the configured environment and MCP connectors, executes the task, then pushes any commits to a branch prefixed `claude/` by default.
+
+**Key constraints**:
+- No local file access (only files tracked in the GitHub repo)
+- Minimum interval is 1 hour for the schedule trigger
+- Supports MCP connectors: Slack, Linear, Google Drive, and others configured per routine
+- Runs appear as full sessions you can inspect, continue, or PR from
+
+##### Schedule Trigger
+
+Runs on a recurring cron cadence. Four presets (hourly / daily / weekdays / weekly), plus custom expressions set via `/schedule update` in the CLI.
 
 ```bash
 /schedule "every Monday at 9am, open a PR summarizing last week's merged PRs"
-/schedule "every day at 6am, run the test suite and post results to Slack"
+/schedule "every night at 2am, pull the top bug from Linear and open a draft fix PR"
+/schedule "every Friday, scan merged PRs for docs drift and open update PRs"
 ```
 
-**How each run works**: Anthropic clones your repo, spins up a Claude session with the configured MCP connectors, executes the task, then pushes any commits to a branch prefixed `claude/` by default.
+##### API Trigger
 
-**Key constraints**:
-- Minimum interval is 1 hour (not suitable for sub-hour checks)
-- No local file access (files not in the GitHub repo are not visible)
-- Supports MCP connectors: Slack, Linear, Google Drive, and others configured per task
-- Can catch up on missed runs if the machine was offline
+Each routine gets a dedicated HTTP endpoint. POST to it from any external system — alerting tools, deploy pipelines, CI scripts — and Claude opens a new autonomous session.
 
-**Official docs**: `https://code.claude.com/docs/en/web-scheduled-tasks.md`
+```bash
+curl -X POST https://api.anthropic.com/v1/claude_code/routines/trig_01.../fire \
+  -H "Authorization: Bearer sk-ant-oat01-xxxxx" \
+  -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Sentry alert SEN-4521 fired in prod. Stack trace attached."}'
+```
+
+The optional `text` field passes run-specific context (alert body, deploy ID, log snippet) to the routine's prompt. The response returns a `session_url` to observe the run live.
+
+**Setup**: add an API trigger from the routine's edit page in the web UI, click **Generate token** (shown once — store it immediately), copy the endpoint URL. Tokens are per-routine and can be rotated or revoked from the same panel.
+
+**Use cases**: Datadog alert fires → Claude correlates trace with recent commits, opens draft fix PR; CD pipeline calls endpoint after deploy → smoke checks + go/no-go to Slack channel.
+
+##### GitHub Event Trigger
+
+Fires a new session automatically on matching GitHub repository events. Requires installing the Claude GitHub App on the target repo (separate from `/web-setup`).
+
+**17 supported event types**: pull request, push, issues, releases, check run, check suite, workflow run, workflow job, workflow dispatch, repository dispatch, pull request review, PR review comment, issue comment, discussion, discussion comment, commit comment, merge queue entry.
+
+**PR filters**: narrow by author, title, body, base/head branch, labels, draft state, merge state, or fork origin. All conditions must match.
+
+```
+# Example filter combinations
+PR opened from a fork                       → security review routine
+PR labeled "needs-backport", is merged      → backport-to-next routine
+Any merged PR changing /sdk/python/         → auto-port to Go SDK routine
+PR opened, is not draft                     → team review checklist routine
+```
+
+**Important**: each matching event opens its own independent session. Two PRs opened = two sessions. There is no session reuse across events.
+
+**Official docs**: `https://code.claude.com/docs/en/routines`
+
+##### Finding Use Cases for Your Project
+
+A good Routine candidate has three properties: it runs the same logic every time (or reacts to a well-defined event), the output is concrete (PR opened, message posted, file updated), and no human needs to be in the loop during execution.
+
+Five angles to audit any project:
+
+| Angle | Questions to ask |
+|-------|-----------------|
+| Scheduled maintenance | What do you do manually on a schedule and sometimes forget? Dependency audits, stale PR triage, coverage drift, dead code reports |
+| Event-driven reactions | What should happen on every PR open or merge but doesn't because nobody gets to it? Review checklists, changelog updates, cross-repo sync |
+| Alert response | When monitoring fires, what's the first thing a dev does? Could that step run automatically before the human looks? |
+| Cross-system sync | What drifts because the sync is manual? Two SDKs, a doc site and an API, GitHub issues and Linear |
+| Release automation | What do you run by hand before or after a deploy? Smoke tests, release notes, stakeholder notifications |
+
+Use the `/routines-discover` command to run this analysis against any codebase — it reads the repo, identifies concrete candidates across the five angles, and ranks them by value-to-effort ratio.
+
+```bash
+/routines-discover
+```
+
+Template: `examples/commands/routines-discover.md`
 
 #### Desktop Scheduled Tasks
 
@@ -9218,6 +9324,28 @@ Output: [Expected result]
 If [error condition]:
 - [Recovery action]
 ```
+
+### Recipe Template: Context Validation Checkpoints
+
+The standard template above works well for workflow commands. For commands that are procedurally risky (deploy flows, data migrations, one-way operations), add a "Context Validation Checkpoints" section before the steps:
+
+```markdown
+## Context Validation Checkpoints
+
+Before executing any step, verify all of these are true.
+If any checkpoint fails, stop and explain why.
+
+* [ ] Target branch exists and is up to date with main
+* [ ] No uncommitted changes in the affected files
+* [ ] Required config file exists at path X
+* [ ] Credentials or permissions are available
+```
+
+The checklist forces explicit precondition verification rather than letting Claude discover failures mid-execution. A failed checkpoint produces a clear error with a fixable reason; a mid-step failure produces a partial state that is harder to recover from.
+
+Fork-ready template at `examples/commands/recipe-template.md` in this repo.
+
+> Pattern from [Packmind command files](https://github.com/packmind/packmind) (Apache 2.0). See [Credits](./core/credits.md).
 
 ## 6.4 Command Examples
 
@@ -21972,6 +22100,56 @@ This is distinct from Agent Teams: there is no persistent team structure, no sha
 
 **Rule of thumb**: Use Agent Teams for workflows with sequential dependencies (agent A's output feeds agent B). Use Swarm when each reviewer can work from the same starting point and you want maximum coverage with minimum setup overhead.
 
+### Pattern: Skeptical Reviewer Sub-Agent
+
+Standard multi-agent pipelines have a systematic flaw: audit agents over-report. When you ask three sub-agents to find contradictions, duplications, or coverage gaps in a set of artifacts, they will find them everywhere, including in patterns that are intentional, complementary, or simply not conflicting.
+
+The solution is a fourth agent whose only job is to reject false positives from the first three.
+
+**How it works**:
+
+```
+Phase 1: Artifact inventory (orchestrator builds the inventory)
+Phase 2: Pairwise analysis (3 agents in parallel, each owns one pair-type)
+          ├── Agent A: standards vs skills
+          ├── Agent B: standards vs commands
+          └── Agent C: skills vs commands
+Phase 3: Skeptical review (1 agent reviews all raw findings)
+          └── Applies false-positive filter criteria
+          └── Produces KEEP/REJECT log + final report
+```
+
+The skeptical reviewer agent operates with explicit anti-hallucination rules. From the Packmind [playbook-audit implementation](https://github.com/packmind/packmind):
+
+> "Be skeptical. Audit agents tend to over-report; your job is to filter. A 50%+ rejection rate is normal and healthy."
+
+**False positive criteria** the reviewer applies before keeping a finding:
+
+- **Intentional scope limits**: The artifacts address different scopes (all files vs migration files only) and do not actually conflict within the narrower scope
+- **Complementary content**: One artifact defines a rule, the other implements it; this is design, not duplication
+- **Different contexts**: The artifacts address different situations, even if they use similar language
+- **Trivial overlap**: Both mention the same concept but neither prescribes conflicting rules about it
+- **Delegation pattern**: A command invoking a skill (or vice versa) is complementary, not a gap or contradiction
+
+**Evidence requirement**: The reviewer only keeps a finding when it can point to specific passages in *both* artifacts. No evidence from both sides, no finding.
+
+**Detection-only scope**: The skeptical reviewer produces a report. It does not modify any artifact. Fixing is a separate step triggered by a human reading the report.
+
+**When to apply this pattern**:
+
+| Situation | Apply? |
+|-----------|--------|
+| Auditing a set of N artifacts for cross-artifact consistency | Yes |
+| Running a doc-vs-codebase audit across many files | Yes |
+| Code review where you want coverage, not noise | Yes |
+| Single-agent analysis of one file | No |
+
+**Connection to Swarm Mode**: Swarm Mode (above) sends the same input to multiple reviewers in parallel for coverage. The Skeptical Reviewer pattern adds a synthesis layer that *filters* swarm output before surfacing it. They compose naturally: run the swarm, pipe its output through the skeptical reviewer.
+
+> Pattern source: [Packmind playbook-audit skill](https://github.com/packmind/packmind) (Apache 2.0, Cédric Teyton). See [Credits](./core/credits.md).
+
+---
+
 ### Practitioner Testimonial
 
 **Paul Rayner** (CEO Virtual Genius, EventStorming Handbook author):
@@ -24938,4 +25116,4 @@ We'll evaluate and add it to this section if it meets quality criteria.
 
 **Contributions**: Issues and PRs welcome.
 
-**Last updated**: January 2026 | **Version**: 3.38.12
+**Last updated**: January 2026 | **Version**: 3.39.1

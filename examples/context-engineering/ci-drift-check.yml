@@ -22,6 +22,25 @@ on:
         description: 'Project directory to check (relative to repo root)'
         required: false
         default: '.'
+  push:
+    paths:
+      # Standard: fire when AI config changes
+      - 'CLAUDE.md'
+      - '.claude/**'
+      - 'doc/guides/ai-instructions/**'
+      # Code-level trigger: fire when the code that AI docs describe changes.
+      # Without this, a developer can add a new Prisma model or API router
+      # and the drift check never runs — docs go stale invisibly.
+      #
+      # Uncomment and adapt to your stack:
+      # - 'prisma/schema.prisma'          # new models need documentation
+      # - 'src/server/api/routers/**'     # new routers need documentation
+      # - 'src/api/**'                    # or equivalent API layer root
+      #
+      # Pair with a drift script that exits 1 on undocumented entities.
+      # Use a repo variable (DRIFT_WARN_ONLY=true) during the initial
+      # rollout period to surface failures without blocking open PRs,
+      # then flip to false once the baseline is clean.
 
 env:
   # Customize these thresholds for your project
