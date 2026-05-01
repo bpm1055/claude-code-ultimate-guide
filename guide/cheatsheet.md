@@ -41,6 +41,11 @@ tags: [cheatsheet, reference]
 | `/mobile` | Get Claude mobile app download links |
 | `/fast` | Toggle fast mode (2.5x speed, 6x cost) |
 | `/voice` | Toggle voice input (hold Space to speak, release to send) |
+| `/recap` | Session context summary on return to a break (v2.1.108) |
+| `/effort [level]` | Thinking depth: low/medium/high/xhigh/max; no arg = interactive slider (v2.1.111) |
+| `/tui [fullscreen]` | Full-screen flicker-free TUI rendering (v2.1.110) |
+| `/focus` | Toggle minimal focus view, separate from Ctrl+O (v2.1.110) |
+| `/less-permission-prompts` | Scan transcripts and propose a read-only tool allowlist (v2.1.111) |
 | `/btw [question]` | Side question overlay — read-only ephemeral agent, no history pollution, no tools |
 | `/loop [interval] [prompt]` | Run a prompt on repeat (ex: `/loop 5m check the deploy`, default 10m) |
 | `/stats` | Usage graph, favorite model, streak |
@@ -239,16 +244,16 @@ Model: Sonnet | Ctx: 89.5k | Cost: $2.11 | Ctx(u): 56.0%
 | **OpusPlan** | `/model opusplan` | Opus for planning, Sonnet for execution |
 | **Ultraplan** | `/ultraplan <prompt>` | Cloud planning, browser review, terminal stays free (v2.1.91+, GitHub required) |
 
-> **Opus 4.6** (v2.1.68+): Default effort = **medium** for Max/Team. Use `ultrathink` to force high effort for the next turn. "think hard" remains cosmetic.
+> **Opus 4.7** (v2.1.114+): Default effort in Claude Code = **xhigh** (all plans). New `xhigh` level sits between `high` and `max` — finer reasoning/latency control. Use `ultrathink` to force max effort for the next turn.
 
 | Control | Action | Persistence |
 |---------|--------|-------------|
 | **Alt+T** | Toggle thinking on/off | Session |
 | **/config** | Enable/disable globally | Permanent |
-| **`/model` slider** | Left/right arrows: `low\|medium\|high` | Session |
-| **`CLAUDE_CODE_EFFORT_LEVEL`** | Env var: `low\|medium\|high` | Shell session |
-| **`effortLevel` setting** | In settings.json: `low\|medium\|high` | Permanent |
-| **`effort` in skill frontmatter** (v2.1.80+) | Per-skill override: `low\|medium\|high` | Per invocation |
+| **`/model` slider** | Left/right arrows: `low\|medium\|high\|xhigh` | Session |
+| **`CLAUDE_CODE_EFFORT_LEVEL`** | Env var: `low\|medium\|high\|xhigh\|max` | Shell session |
+| **`effortLevel` setting** | In settings.json: `low\|medium\|high\|xhigh\|max` | Permanent |
+| **`effort` in skill frontmatter** (v2.1.80+) | Per-skill override: `low\|medium\|high\|xhigh` | Per invocation |
 
 **Cost tip**: For simple tasks, Alt+T to disable thinking → faster & cheaper.
 

@@ -10,8 +10,8 @@
 - Last Updated: April 16, 2026
 - License: CC BY-SA 4.0 (free, open source)
 - Lines of Documentation: 25,100+
-- Production Templates: 246
-- Quiz Questions: 334
+- Production Templates: 247
+- Quiz Questions: 330
 
 ## What This Guide Covers
 
@@ -34,13 +34,13 @@
 
 ### For Learning
 - Full Guide (~10h): https://github.com/FlorianBruniaux/claude-code-ultimate-guide/blob/main/guide/ultimate-guide.md
-- Interactive Quiz (334 questions): https://cc.bruniaux.com/quiz.html
+- Interactive Quiz (330 questions): https://cc.bruniaux.com/quiz.html
 
 - Whitepapers (FR + EN, 9 titles): https://www.florian.bruniaux.com/guides
 - Landing site: https://cc.bruniaux.com
 
 ### For Templates
-- 246 Production Templates: https://github.com/FlorianBruniaux/claude-code-ultimate-guide/tree/main/examples
+- 247 Production Templates: https://github.com/FlorianBruniaux/claude-code-ultimate-guide/tree/main/examples
 - Agents: backend-architect, security-guardian, code-reviewer, debugger, devops-sre, adr-writer
 - Commands: /pr, /commit, /release-notes, /diagnose, /generate-tests, /optimize, /git-worktree
 - Hooks: dangerous-actions-blocker, prompt-injection-detector, secrets-scanner (bash + PowerShell)

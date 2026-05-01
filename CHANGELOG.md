@@ -6,8 +6,125 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+- **Claude Code Releases**: Updated tracking to v2.1.126
+  - /model picker lists models from gateway's /v1/models endpoint (ANTHROPIC_BASE_URL gateway support)
+  - claude project purge [path] — delete all Claude Code state for a project
+  - claude auth login accepts pasted OAuth code for WSL2/SSH/container environments
+  - Windows: PowerShell 7 from MS Store/MSI/.NET global tool now detected, treated as primary shell
+  - Security: Fixed allowManagedDomainsOnly/allowManagedReadPathsOnly ignored in managed-settings
+  - 40+ bug fixes: image paste crash >2000px, Stream idle timeout after sleep, CJK text on Windows, OAuth timeout, Agent SDK hang on malformed tool names
+
+- **Claude Code Releases**: Updated tracking to v2.1.123 (v2.1.120 through v2.1.123)
+  - v2.1.120: Windows PowerShell fallback (no Git Bash required), claude ultrareview CI subcommand, ${CLAUDE_EFFORT} in skills
+  - v2.1.121: alwaysLoad MCP config, plugin prune, PostToolUse output replacement for all tools, critical memory leak fixes
+  - v2.1.122: ANTHROPIC_BEDROCK_SERVICE_TIER, PR URL in /resume search, Vertex AI/Bedrock fixes, image resize fix
+  - v2.1.123: OAuth 401 hotfix when CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1
+
+- **Peak Hours behavior** (guide, section "Subscription Plans & Limits"): Documented the March 26, 2026 Anthropic change — session limits now drain faster during weekdays 5am–11am PT due to GPU capacity constraints. Added practical workaround (shift compute-heavy tasks to off-peak hours). Source: MacRumors, The Register, TechRadar coverage of the official Anthropic change.
+
+- **Data Privacy guide** (security): Added Risk 6 — Claude Desktop browser integration silent native messaging host installation. Covers what gets installed, which browsers are affected, what native messaging actually does vs. the consent failure issue, how to audit and remove the files, and the Claude Desktop/Claude Code CLI conflict bug (GitHub #51949, #53864). Factual, no "spyware" framing, includes command-line audit and cleanup steps.
+
+- **Claude Code Releases**: Updated tracking to v2.1.119
+  - /config settings now persist to ~/.claude/settings.json with override precedence
+  - --from-pr accepts GitLab MR, Bitbucket PR, and GitHub Enterprise URLs
+  - --print honors agent tools:/disallowedTools: frontmatter; --agent honors permissionMode
+  - Security: blockedMarketplaces enforces hostPattern/pathPattern; 30+ bug fixes
+
+- **Threat Database** (security): Updated to v2.15.0 (2026-04-24). Added 5 new CVEs from OX Security MCP STDIO chain (CVE-2026-30623 LiteLLM, CVE-2026-40933 Flowise, CVE-2026-33224 Bisheng, CVE-2025-69256 Serverless Framework, CVE-2026-6494 Red Hat AAP MCP). Added attack techniques T026 (Claudy Day session hijack) and T027 (Claude Code Supply Chain Memory Poisoning). Added 9 new sources including IBM X-Force agentic AI report, Straiker 94% prompt injection study, InfoSecurity 10 in-the-wild IPI payloads. Added litellm to minimum_safe_versions.
+
+- **Known Issues** (major update): Added "Triple Harness Incident (Mar-Apr 2026)" resolved entry, covering three independent harness/prompt changes that degraded output quality: default effort high to medium (March 4, reverted April 7), thinking tokens cleared per-turn bug (March 26, fixed April 10 in v2.1.101), verbosity system prompt (April 16, reverted April 20 in v2.1.116). Source: Anthropic official postmortem and Boris Cherny HN comments (April 23, 2026). Updated Last Updated date.
+
+- **Ultrareview section** (guide): Added `/ultrareview <PR#>` syntax, clarified diff-only scope (not full codebase), added Scope row to Ultraplan vs Ultrareview comparison table
+
+- **Claude Code Releases**: Updated tracking to v2.1.118
+  - Vim visual mode (`v`) and visual-line mode (`V`) with selection and operators
+  - `/cost` and `/stats` merged into `/usage` (both old commands remain as shortcuts)
+  - Custom named themes from `/theme` or `~/.claude/themes/`; plugins can ship themes
+  - Hooks can invoke MCP tools directly via `type: "mcp_tool"` in hook config
+  - `DISABLE_UPDATES` env var; `wslInheritsWindowsSettings` policy; 15+ bug fixes
+
+- **Built-in Commands Reference** (major update): Added 26 missing commands to the reference table introduced in v2.1.108–v2.1.117
+  - `/recap`, `/effort`, `/tui`, `/focus`, `/undo`, `/proactive`, `/less-permission-prompts`, `/team-onboarding`, `/terminal-setup`, `/reload-plugins`
+  - `/config`, `/model`, `/context`, `/cost`, `/doctor`, `/release-notes`, `/copy`, `/resume`, `/loop`, `/mcp`, `/memory`, `/plugin`, `/keybindings`, `/setup-bedrock`, `/setup-vertex`, `/ultrareview`
+- **`/recap` dedicated section**: How it works (triggers on return, not on exit), configuration options (`/config`, `CLAUDE_CODE_ENABLE_AWAY_SUMMARY`), telemetry-disabled compatibility, version history
+- **Cheatsheet**: Added `/recap`, `/effort`, `/tui`, `/focus`, `/less-permission-prompts` to Essential Commands table
+
+- **Claude Code Releases**: Updated tracking to v2.1.117
+  - Default effort changed to `high` for Pro/Max subscribers on Opus 4.6 and Sonnet 4.6 (was `medium`)
+  - Fixed Opus 4.7 sessions computing `/context` against 200K instead of 1M context window
+  - Native macOS/Linux builds: Glob/Grep replaced by embedded `bfs`/`ugrep` (faster, no round-trip)
+  - `/model` selections persist across restarts; startup header shows model source pin
+  - 15+ bug fixes: OAuth 401 refresh, WebFetch hang on large HTML, HTTP 204 crash, NO_PROXY under Bun, Bedrock Opus 4.7 thinking disabled
+
+- **README.md**: Updated date badge (Apr 22, 2026), Quick Start with Learning Path entry, repo structure with `learning-path/` and `examples/CATALOG.md`, "5 unique gaps" updated from 4
+
+- **Learning Path (NEW)**: Added structured 7-module learning path for beginners
+  - `guide/learning-path/README.md` — Meta guide with 7 modules, 3 learning tracks, time estimates
+  - `guide/learning-path/01-installation.md` — Installation and first run (15 min)
+  - `guide/learning-path/02-core-loop.md` — Interaction loop and context management (45 min)
+  - `guide/learning-path/03-memory.md` — CLAUDE.md and configuration (1 hour)
+  - `guide/learning-path/04-agents.md` — Creating specialized agents (1.5 hours)
+  - `guide/learning-path/05-skills.md` — Building reusable skills (1.5 hours)
+  - `guide/learning-path/06-hooks.md` — Automation hooks and events (1 hour)
+  - `guide/learning-path/07-advanced.md` — Multi-agent orchestration (2-3 hours)
+  - Each module: theory + hands-on exercises + validation steps
+  - Mirrors competitor structure while maintaining unique depth in security/architecture
+  - Integrates with `/self-assessment` and `/lesson-quiz` skills for interactive learning
+  - Time estimate: 8-11 hours for complete path + optional deep dives
+
+- **Template Catalog System (NEW)**: Auto-generated metadata-driven catalog for 181 templates
+  - `examples/CATALOG.md` — Auto-generated index organized by complexity, time, domain (813 lines)
+  - `scripts/generate-template-catalog.py` — Catalog generation tool (validation + filtering + auto-links)
+  - `docs/template-metadata-schema.md` — Complete metadata specification with examples
+  - `.claude/hooks/validate-template-metadata.sh` — Pre-commit validation hook for template metadata
+  - `examples/README.md` — Updated with catalog information and metadata overview
+  - Template counts: 23 agents, 52 commands, 64 skills, 37 hooks, 3 workflows, 2 scripts (181 total)
+  - Metadata fields: name, description, complexity (beginner/intermediate/advanced), time (5min–4+ hrs), domain, prerequisites, status, keywords
+  - Catalog regenerated via: `python3 scripts/generate-template-catalog.py --output examples/CATALOG.md`
+  - Pre-commit hook auto-validates new/modified templates for proper metadata
+  - Enables filtering by: beginner-friendly, time estimate, domain, keywords
+  - Supports future integrations: auto-documentation generation, skill assessments, learning path mapping
+
+- **Claude Code Releases**: Updated tracking to v2.1.116
+  - `/resume` up to 67% faster on 40MB+ sessions; handles dead-fork entries more efficiently
+  - Thinking spinner shows inline progress ("still thinking", "thinking more", "almost done thinking")
+  - Security: sandbox auto-allow no longer bypasses dangerous-path check for `rm`/`rmdir` targeting `/`, `$HOME`, or critical directories
+  - Agent frontmatter `hooks:` now fire when running as main-thread agent via `--agent`; `/config` search matches option values; many terminal, scrolling, and UI bug fixes
+
+- **third-party-tools.md**: Added abtop — Rust TUI for monitoring Claude Code & Codex CLI agent fleets (htop-style: tokens, context %, rate limits, orphan ports, subagent tree, tmux integration, 584+ stars, MIT)
+
+- **ultimate-guide.md § 5.4**: Added Example 4 — Tally Form Builder Skill, documenting the MCP wrapping pattern with deferred tool loading, OAuth flow, block chaining, and known limitations
+- **examples/README.md**: Updated all section counts (agents 23, commands 52, hooks 37, skills 68, scripts 17, github-actions 6, integrations 3, config 6, memory 1) and added context-engineering folder to structure table
+- **README.md, llms-full.txt, landing**: Updated template count from 246 → 247 across all counters (guide README badge, mermaid diagram, tree, comparison table, landing hero, features, FAQ, examples page)
+
+- **ultimate-guide.md § 9.9**: Added "macOS Batch Automation: Shell + AppleScript" subsection — batch PPTX→PDF conversion via Keynote, with the shell-open-then-AppleScript pattern to avoid error -1719
+- **examples/scripts/pptx-to-pdf.sh**: New utility script — recursive PPTX→PDF conversion on macOS using Keynote + AppleScript, no external dependencies
+
+- **ultimate-guide.md**: Added Claude Opus 4.7 documentation throughout
+  - Pricing table updated with Opus 4.7 ($5/$25, April 2026), tokenizer note (1.0–1.35x tokens), Mythos Preview mention
+  - Model aliases: `opus` now resolves to Claude Opus 4.7
+  - Effort levels: new `xhigh` level documented (Opus 4.7+, v2.1.114+); default for Claude Code raised to xhigh
+  - Permission modes: Auto mode section added for Max subscribers (v2.1.114+)
+  - /ultrareview section added (cloud parallel code review, v2.1.114+, 3 free for Pro/Max)
+  - Adaptive Thinking evolution timeline updated with Opus 4.7 entry
+  - API examples updated to use `claude-opus-4-7` model ID
+  - Ultraplan table: model updated from Opus 4.6 to Opus 4.7
+  - Cache min tokens table: Opus 4.7 added (4,096 token threshold)
+- **cheatsheet.md**: Effort levels updated for Opus 4.7 (xhigh default, full level list)
+
+- **third-party-tools.md**: New "Security Scanning" section with AgentShield (102-rule `.claude/` config scanner, A–F grading, GitHub Action, MIT); ToC updated; Known Gaps table updated to mark automated config scanning as filled
+- **security-hardening.md**: Section 3.3 split into config-level (AgentShield) and code-level (security-auditor agent) scanning with cross-reference
+
 - **audit-prompt.md v5.1**: context-evaluator.ai referenced in "Deepen Your Audit" block and Section 8 table as a zero-install LLM-native alternative for Dimension 1 (Memory and Context)
 - **context-audit-prompt.md v1.1**: context-evaluator.ai added to Section 9 Related Resources
+- **threat-db.yaml v2.14.0**: 5 new CVEs/advisories (CVE-2026-33032 MCPwn critical actively exploited, CVE-2026-27944, CVE-2025-56404, CVE-2026-30615, ADVISORY-MCP-STDIO-2026-001), T025 "Comment and Control" attack technique, 2 new scanning tools (Snyk Agent Scan, Straiker MCP Security), 9 new sources
+- **security-hardening.md**: Added CVE-2026-33032 (nginx-ui MCPwn CVSS 9.8 actively exploited) and ADVISORY-MCP-STDIO-2026-001 (OX Security systemic STDIO flaw) to CVE table and alerts
+- **Claude Code Releases**: Updated tracking to v2.1.114 (v2.1.113 + v2.1.114)
+  - v2.1.113: Native Claude Code binary spawning via per-platform optional dependency
+  - v2.1.113: sandbox.network.deniedDomains to block specific domains under wildcard allowedDomains
+  - v2.1.113: Security hardening — macOS dangerous paths for rm, Bash deny rules match exec wrappers, find -exec no longer auto-approved
+  - v2.1.113: Keyboard improvements, /loop Esc cancels wakeups, subagents fail after 10min, many bug fixes
+  - v2.1.114: Fixed crash in permission dialog when agent teams teammate requested tool permission
 
 ## [3.39.1] - 2026-04-16 (2)
 
